@@ -145,6 +145,7 @@ MAX_PAGES = 6  # Fetch up to 6 pages (600 flights) per airport for background re
 MAX_PAGES_DATE = 12  # Fetch up to 12 pages (1200 flights) for specific date requests
 OPENSKY_CACHE_TTL = 1200   # 20 minutes — respects anonymous rate limits
 ENRICHED_STATUS_CACHE_TTL = 900  # 15 minutes between external enrichment retries
+LIVE_FLIGHTS_CACHE_TTL = 60  # Refresh live aircraft positions every 60 seconds
 
 # ---------------------------------------------------------------------------
 # Caches
@@ -154,6 +155,7 @@ _adsb_cache: dict = {}             # Live ADS-B data per airport
 _history_cache: dict = {}          # Historical flights {icao: {direction: {date_str: [flights]}}}
 _opensky_cache: dict = {}          # OpenSky track data {icao: {direction: {callsign: {firstSeen, lastSeen}}}}
 _enriched_status_cache: dict = {}  # Externally-resolved statuses {"FN:DATE" -> {category, text, source, fetched_at}}
+_live_flights_cache: dict = {"data": [], "fetched_at": 0}  # All airborne aircraft in India
 _executor = ThreadPoolExecutor(max_workers=8)
 
 # ---------------------------------------------------------------------------
@@ -1530,6 +1532,125 @@ async def _background_enrich_past_scheduled():
 
 
 # ---------------------------------------------------------------------------
+# Live flights across India's airspace
+# ---------------------------------------------------------------------------
+# Invert AIRLINE_IATA_TO_ICAO so we can map ICAO callsign prefix → IATA
+_ICAO_PREFIX_TO_IATA = {v: k for k, v in AIRLINE_IATA_TO_ICAO.items()}
+
+
+def _fetch_live_flights_india() -> list:
+    """Fetch all airborne aircraft in India's airspace (lat 5.5–37.5, lon 66–98.5).
+
+    Tries OpenSky Network states/all (bounding box) first, falls back to
+    Airplanes.live with a 1000 nm radius from India's geographic centre.
+    Both sources are already acknowledged in the app footer.
+    """
+    headers = {"User-Agent": "India-Flight-Status-Dashboard/1.0 (non-commercial)"}
+
+    # --- Primary: OpenSky bounding box ---
+    try:
+        resp = http_requests.get(
+            "https://opensky-network.org/api/states/all",
+            params={"lamin": 5.5, "lomin": 66.0, "lamax": 37.5, "lomax": 98.5},
+            headers=headers,
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            states = resp.json().get("states") or []
+            result = []
+            for s in states:
+                if len(s) < 9 or s[8]:  # skip on-ground
+                    continue
+                lat, lon = s[6], s[5]
+                if lat is None or lon is None:
+                    continue
+                callsign = (s[1] or "").strip().upper()
+                if not callsign:
+                    continue
+                alt_m = s[7]
+                result.append({
+                    "icao24": s[0] or "",
+                    "callsign": callsign,
+                    "lat": round(lat, 4),
+                    "lon": round(lon, 4),
+                    "heading": round(s[10]) if s[10] is not None else 0,
+                    "alt_ft": round(alt_m * 3.28084) if alt_m else None,
+                    "source": "opensky",
+                })
+            logger.info("Live flights (OpenSky): %d aircraft", len(result))
+            return result
+    except Exception as e:
+        logger.warning("OpenSky live flights error: %s", e)
+
+    # --- Fallback: Airplanes.live (centre of India, 1000 nm radius) ---
+    try:
+        resp = http_requests.get(f"{ADSB_API_BASE}/point/22/82/1000", timeout=15)
+        if resp.status_code == 200:
+            result = []
+            for ac in resp.json().get("ac", []):
+                if ac.get("alt_baro") == "ground":
+                    continue
+                lat = ac.get("lat")
+                lon = ac.get("lon")
+                if lat is None or lon is None:
+                    continue
+                if not (5.5 <= lat <= 37.5 and 66 <= lon <= 98.5):
+                    continue
+                callsign = (ac.get("flight") or "").strip().upper()
+                if not callsign:
+                    continue
+                alt_baro = ac.get("alt_baro")
+                result.append({
+                    "icao24": ac.get("hex", ""),
+                    "callsign": callsign,
+                    "lat": round(lat, 4),
+                    "lon": round(lon, 4),
+                    "heading": round(ac.get("track") or 0),
+                    "alt_ft": alt_baro if isinstance(alt_baro, int) else None,
+                    "source": "airplanes.live",
+                })
+            logger.info("Live flights (Airplanes.live): %d aircraft", len(result))
+            return result
+    except Exception as e:
+        logger.warning("Airplanes.live live flights error: %s", e)
+
+    return []
+
+
+def _build_flight_delay_index() -> dict:
+    """Build a callsign → delay info index from all currently cached scheduled flights.
+
+    Maps ICAO callsign (e.g. 'IGO123') to delay_minutes and route info so the
+    live-flights overlay can colour aircraft by how late they are.
+    """
+    index: dict = {}
+    for icao_ap, directions in _cache.items():
+        for _dir, entry in directions.items():
+            if not isinstance(entry, dict):
+                continue
+            for f in (entry.get("data") or []):
+                airline_iata = (f.get("airline") or {}).get("iata", "")
+                icao_prefix = AIRLINE_IATA_TO_ICAO.get(airline_iata, "")
+                if not icao_prefix:
+                    continue
+                fn = (f.get("flight_number") or "").replace(" ", "").upper()
+                num_part = "".join(c for c in fn if c.isdigit())
+                if not num_part:
+                    continue
+                callsign = f"{icao_prefix}{num_part}"
+                delay = f.get("delay_minutes") or 0
+                if callsign not in index or delay > index[callsign].get("delay_minutes", 0):
+                    index[callsign] = {
+                        "delay_minutes": delay,
+                        "flight_number": f.get("flight_number", ""),
+                        "airline": (f.get("airline") or {}).get("name", ""),
+                        "origin": (f.get("origin") or {}).get("iata", ""),
+                        "destination": (f.get("destination") or {}).get("iata", ""),
+                    }
+    return index
+
+
+# ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
 @asynccontextmanager
@@ -1582,7 +1703,7 @@ async def scraper_protection(request: Request, call_next):
             )
 
         # Token validation for data endpoints
-        if path in ("/api/flights", "/api/overview"):
+        if path in ("/api/flights", "/api/overview", "/api/live-flights"):
             token = request.headers.get("X-Dashboard-Token") or request.query_params.get("_token")
             if not _validate_token(token):
                 return JSONResponse(
@@ -1764,6 +1885,45 @@ async def get_airports():
     ]
     airports_list.sort(key=lambda a: a["city"])
     return {"airports": airports_list}
+
+
+@app.get("/api/live-flights")
+async def get_live_flights():
+    """Return all airborne aircraft over India with delay info where available."""
+    global _live_flights_cache
+    now = time.time()
+    if now - _live_flights_cache["fetched_at"] > LIVE_FLIGHTS_CACHE_TTL:
+        loop = asyncio.get_event_loop()
+        data = await loop.run_in_executor(_executor, _fetch_live_flights_india)
+        _live_flights_cache = {"data": data, "fetched_at": now}
+
+    aircraft_list = _live_flights_cache.get("data") or []
+    delay_index = _build_flight_delay_index()
+
+    result = []
+    for ac in aircraft_list:
+        callsign = ac["callsign"]
+        info = delay_index.get(callsign, {})
+        result.append({
+            "icao24": ac["icao24"],
+            "callsign": callsign,
+            "lat": ac["lat"],
+            "lon": ac["lon"],
+            "heading": ac.get("heading", 0),
+            "alt_ft": ac.get("alt_ft"),
+            "delay_minutes": info.get("delay_minutes"),
+            "flight_number": info.get("flight_number") or callsign,
+            "airline": info.get("airline", ""),
+            "origin": info.get("origin", ""),
+            "destination": info.get("destination", ""),
+            "matched": bool(info),
+        })
+
+    return {
+        "aircraft": result,
+        "fetched_at": _live_flights_cache["fetched_at"],
+        "total": len(result),
+    }
 
 
 @app.get("/health")
