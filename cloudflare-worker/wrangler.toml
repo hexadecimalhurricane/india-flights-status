@@ -1,0 +1,11 @@
+name            = "infs"
+main            = "worker.js"
+compatibility_date = "2025-01-01"
+workers_dev     = true   # enables infs.workers.dev automatically
+
+# BACKEND_URL is stored as a secret (not committed to git):
+#   wrangler secret put BACKEND_URL
+# Paste your Render service URL, e.g.: https://infs.onrender.com
+
+[observability]
+enabled = true
