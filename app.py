@@ -41,6 +41,84 @@ AIRPORTS = {
     "VEPT": {"iata": "PAT", "name": "Lok Nayak Jayaprakash Airport",     "city": "Patna",       "country": "India", "lat": 25.5913, "lon": 85.0880, "tz": "Asia/Kolkata"},
     "VOPN": {"iata": "PNQ", "name": "Pune International",                "city": "Pune",        "country": "India", "lat": 18.5822, "lon": 73.9197, "tz": "Asia/Kolkata"},
     "VOPB": {"iata": "IXZ", "name": "Veer Savarkar International",       "city": "Port Blair",  "country": "India", "lat": 11.6412, "lon": 92.7296, "tz": "Asia/Kolkata"},
+    "VILK": {"iata": "LKO", "name": "Chaudhary Charan Singh Intl",      "city": "Lucknow",     "country": "India", "lat": 26.7606, "lon": 80.8893, "tz": "Asia/Kolkata"},
+    "VIJP": {"iata": "JAI", "name": "Jaipur International",              "city": "Jaipur",      "country": "India", "lat": 26.8242, "lon": 75.8122, "tz": "Asia/Kolkata"},
+    "VEBS": {"iata": "BBI", "name": "Biju Patnaik International",        "city": "Bhubaneswar", "country": "India", "lat": 20.2444, "lon": 85.8178, "tz": "Asia/Kolkata"},
+    "VIBN": {"iata": "VNS", "name": "Lal Bahadur Shastri International", "city": "Varanasi",    "country": "India", "lat": 25.4524, "lon": 82.8593, "tz": "Asia/Kolkata"},
+    "VOTV": {"iata": "TRV", "name": "Trivandrum International",          "city": "Thiruvananthapuram", "country": "India", "lat": 8.4821, "lon": 76.9201, "tz": "Asia/Kolkata"},
+    "VOML": {"iata": "IXE", "name": "Mangalore International",           "city": "Mangalore",   "country": "India", "lat": 12.9613, "lon": 74.8901, "tz": "Asia/Kolkata"},
+    "VOCB": {"iata": "CJB", "name": "Coimbatore International",          "city": "Coimbatore",  "country": "India", "lat": 11.0300, "lon": 77.0434, "tz": "Asia/Kolkata"},
+    "VISR": {"iata": "SXR", "name": "Sheikh ul-Alam International",      "city": "Srinagar",    "country": "India", "lat": 33.9871, "lon": 74.7742, "tz": "Asia/Kolkata"},
+    "VIAR": {"iata": "ATQ", "name": "Sri Guru Ram Dass Jee Intl",        "city": "Amritsar",    "country": "India", "lat": 31.7096, "lon": 74.7973, "tz": "Asia/Kolkata"},
+    "VERC": {"iata": "IXR", "name": "Birsa Munda Airport",               "city": "Ranchi",      "country": "India", "lat": 23.3143, "lon": 85.3217, "tz": "Asia/Kolkata"},
+    "VAID": {"iata": "IDR", "name": "Devi Ahilyabai Holkar Airport",     "city": "Indore",      "country": "India", "lat": 22.7218, "lon": 75.8011, "tz": "Asia/Kolkata"},
+    "VOVZ": {"iata": "VTZ", "name": "Visakhapatnam International",       "city": "Visakhapatnam", "country": "India", "lat": 17.7212, "lon": 83.2245, "tz": "Asia/Kolkata"},
+    "VERP": {"iata": "RPR", "name": "Swami Vivekananda Airport",         "city": "Raipur",      "country": "India", "lat": 21.1804, "lon": 81.7387, "tz": "Asia/Kolkata"},
+    "VEIM": {"iata": "IMF", "name": "Bir Tikendrajit International",     "city": "Imphal",      "country": "India", "lat": 24.7600, "lon": 93.8967, "tz": "Asia/Kolkata"},
+    "VEBD": {"iata": "IXB", "name": "Bagdogra Airport",                  "city": "Bagdogra",    "country": "India", "lat": 26.6812, "lon": 88.3286, "tz": "Asia/Kolkata"},
+    "VIDN": {"iata": "DED", "name": "Jolly Grant Airport",               "city": "Dehradun",    "country": "India", "lat": 30.1897, "lon": 78.1803, "tz": "Asia/Kolkata"},
+    "VOCL": {"iata": "CCJ", "name": "Calicut International",             "city": "Kozhikode",   "country": "India", "lat": 11.1368, "lon": 75.9553, "tz": "Asia/Kolkata"},
+    "VOTR": {"iata": "TRZ", "name": "Tiruchirappalli International",     "city": "Tiruchirappalli", "country": "India", "lat": 10.7654, "lon": 78.7097, "tz": "Asia/Kolkata"},
+    "VIUD": {"iata": "UDR", "name": "Maharana Pratap Airport",            "city": "Udaipur",     "country": "India", "lat": 24.6177, "lon": 73.8961, "tz": "Asia/Kolkata"},
+    "VOMD": {"iata": "IXM", "name": "Madurai Airport",                   "city": "Madurai",     "country": "India", "lat": 9.8345,  "lon": 78.0934, "tz": "Asia/Kolkata"},
+    "VILH": {"iata": "IXL", "name": "Kushok Bakula Rimpochee Airport",   "city": "Leh",         "country": "India", "lat": 34.1359, "lon": 77.5465, "tz": "Asia/Kolkata"},
+    "VOGA": {"iata": "GOX", "name": "Manohar International (Mopa)",      "city": "North Goa",   "country": "India", "lat": 15.7383, "lon": 73.8314, "tz": "Asia/Kolkata"},
+    # Additional major airports
+    "VABP": {"iata": "BHO", "name": "Raja Bhoj Airport",                 "city": "Bhopal",      "country": "India", "lat": 23.2875, "lon": 77.3374, "tz": "Asia/Kolkata"},
+    "VIJU": {"iata": "IXJ", "name": "Jammu Airport",                     "city": "Jammu",       "country": "India", "lat": 32.6891, "lon": 74.8374, "tz": "Asia/Kolkata"},
+    "VOVR": {"iata": "VGA", "name": "Vijayawada International Airport",  "city": "Vijayawada",  "country": "India", "lat": 16.5304, "lon": 80.7968, "tz": "Asia/Kolkata"},
+    "VOTP": {"iata": "TIR", "name": "Tirupati Airport",                  "city": "Tirupati",    "country": "India", "lat": 13.6325, "lon": 79.5433, "tz": "Asia/Kolkata"},
+    "VOKN": {"iata": "CNN", "name": "Kannur International Airport",      "city": "Kannur",      "country": "India", "lat": 11.9186, "lon": 75.5477, "tz": "Asia/Kolkata"},
+    "VOBM": {"iata": "IXG", "name": "Belagavi Airport",                  "city": "Belagavi",    "country": "India", "lat": 15.8593, "lon": 74.6183, "tz": "Asia/Kolkata"},
+    "VABO": {"iata": "BDQ", "name": "Vadodara Airport",                  "city": "Vadodara",    "country": "India", "lat": 22.3362, "lon": 73.2263, "tz": "Asia/Kolkata"},
+    "VIJO": {"iata": "JDH", "name": "Jodhpur Airport",                   "city": "Jodhpur",     "country": "India", "lat": 26.2511, "lon": 73.0489, "tz": "Asia/Kolkata"},
+    "VASU": {"iata": "STV", "name": "Surat Airport",                     "city": "Surat",       "country": "India", "lat": 21.1141, "lon": 72.7418, "tz": "Asia/Kolkata"},
+    "VIGR": {"iata": "GWL", "name": "Gwalior Airport",                   "city": "Gwalior",     "country": "India", "lat": 26.2933, "lon": 78.2278, "tz": "Asia/Kolkata"},
+    "VEMN": {"iata": "DIB", "name": "Dibrugarh Airport",                 "city": "Dibrugarh",   "country": "India", "lat": 27.4839, "lon": 95.0169, "tz": "Asia/Kolkata"},
+    "VEJT": {"iata": "JRH", "name": "Jorhat Airport",                    "city": "Jorhat",      "country": "India", "lat": 26.7315, "lon": 94.1755, "tz": "Asia/Kolkata"},
+    "VEKU": {"iata": "IXS", "name": "Silchar Airport",                   "city": "Silchar",     "country": "India", "lat": 24.9129, "lon": 92.9787, "tz": "Asia/Kolkata"},
+    "VOHB": {"iata": "HBX", "name": "Hubli Airport",                     "city": "Hubli",       "country": "India", "lat": 15.3617, "lon": 75.0849, "tz": "Asia/Kolkata"},
+    "VEGK": {"iata": "GOP", "name": "Gorakhpur Airport",                 "city": "Gorakhpur",   "country": "India", "lat": 26.7397, "lon": 83.4497, "tz": "Asia/Kolkata"},
+    "VOMY": {"iata": "MYQ", "name": "Mysore Airport",                    "city": "Mysuru",      "country": "India", "lat": 12.2306, "lon": 76.6496, "tz": "Asia/Kolkata"},
+    "VORY": {"iata": "RJA", "name": "Rajahmundry Airport",               "city": "Rajahmundry", "country": "India", "lat": 17.1104, "lon": 81.8182, "tz": "Asia/Kolkata"},
+    "VIGG": {"iata": "DHM", "name": "Kangra Airport",                    "city": "Dharamsala",  "country": "India", "lat": 32.1651, "lon": 76.2634, "tz": "Asia/Kolkata"},
+    "VAJB": {"iata": "JLR", "name": "Jabalpur Airport",                  "city": "Jabalpur",    "country": "India", "lat": 23.1778, "lon": 80.0520, "tz": "Asia/Kolkata"},
+    "VEMR": {"iata": "DMU", "name": "Dimapur Airport",                   "city": "Dimapur",     "country": "India", "lat": 25.8839, "lon": 93.7710, "tz": "Asia/Kolkata"},
+    "VEAK": {"iata": "AJL", "name": "Lengpui Airport",                   "city": "Aizawl",      "country": "India", "lat": 23.8406, "lon": 92.6197, "tz": "Asia/Kolkata"},
+    "VAAU": {"iata": "IXU", "name": "Aurangabad Airport",                "city": "Aurangabad",  "country": "India", "lat": 19.8627, "lon": 75.3981, "tz": "Asia/Kolkata"},
+    "VASD": {"iata": "SAG", "name": "Shirdi Airport",                    "city": "Shirdi",      "country": "India", "lat": 19.6882, "lon": 74.3789, "tz": "Asia/Kolkata"},
+    # Northeast India
+    "VEAT": {"iata": "IXA", "name": "Maharaja Bir Bikram Airport",       "city": "Agartala",    "country": "India", "lat": 23.8873, "lon": 91.2387, "tz": "Asia/Kolkata"},
+    "VETZ": {"iata": "TEZ", "name": "Tezpur Airport",                    "city": "Tezpur",      "country": "India", "lat": 26.7083, "lon": 92.7847, "tz": "Asia/Kolkata"},
+    "VELR": {"iata": "IXI", "name": "Lilabari Airport",                  "city": "Lilabari",    "country": "India", "lat": 27.2950, "lon": 94.0978, "tz": "Asia/Kolkata"},
+    "VEDG": {"iata": "RDP", "name": "Kazi Nazrul Islam Airport",         "city": "Durgapur",    "country": "India", "lat": 23.6225, "lon": 87.2430, "tz": "Asia/Kolkata"},
+    "VEBI": {"iata": "SHL", "name": "Umroi Airport",                     "city": "Shillong",    "country": "India", "lat": 25.7036, "lon": 91.9787, "tz": "Asia/Kolkata"},
+    "VEJH": {"iata": "JRG", "name": "Veer Surendra Sai Airport",         "city": "Jharsuguda",  "country": "India", "lat": 21.9134, "lon": 84.0504, "tz": "Asia/Kolkata"},
+    "VEDO": {"iata": "DGH", "name": "Deoghar Airport",                   "city": "Deoghar",     "country": "India", "lat": 24.4192, "lon": 86.7087, "tz": "Asia/Kolkata"},
+    # North India (UP, Uttarakhand, HP, Rajasthan)
+    "VEAB": {"iata": "IXD", "name": "Prayagraj Airport",                 "city": "Prayagraj",   "country": "India", "lat": 25.4401, "lon": 81.7339, "tz": "Asia/Kolkata"},
+    "VIAG": {"iata": "AGR", "name": "Agra Airport",                      "city": "Agra",        "country": "India", "lat": 27.1558, "lon": 77.9610, "tz": "Asia/Kolkata"},
+    "VIKA": {"iata": "KNU", "name": "Kanpur Airport",                    "city": "Kanpur",      "country": "India", "lat": 26.4414, "lon": 80.3649, "tz": "Asia/Kolkata"},
+    "VIBY": {"iata": "BEK", "name": "Bareilly Airport",                  "city": "Bareilly",    "country": "India", "lat": 28.4209, "lon": 79.4500, "tz": "Asia/Kolkata"},
+    "VEKI": {"iata": "KBK", "name": "Kushinagar International Airport",  "city": "Kushinagar",  "country": "India", "lat": 26.7408, "lon": 83.8188, "tz": "Asia/Kolkata"},
+    "VIBR": {"iata": "KUU", "name": "Kullu-Manali Airport",              "city": "Kullu",       "country": "India", "lat": 31.8767, "lon": 77.1544, "tz": "Asia/Kolkata"},
+    "VIPT": {"iata": "PGH", "name": "Pantnagar Airport",                 "city": "Pantnagar",   "country": "India", "lat": 29.0334, "lon": 79.4737, "tz": "Asia/Kolkata"},
+    "VIKG": {"iata": "KQH", "name": "Kishangarh Airport",               "city": "Ajmer",       "country": "India", "lat": 26.6821, "lon": 74.8131, "tz": "Asia/Kolkata"},
+    "VIJR": {"iata": "JSA", "name": "Jaisalmer Airport",                 "city": "Jaisalmer",   "country": "India", "lat": 26.8889, "lon": 70.8650, "tz": "Asia/Kolkata"},
+    "VIBK": {"iata": "BKB", "name": "Bikaner Airport",                   "city": "Bikaner",     "country": "India", "lat": 28.0706, "lon": 73.2072, "tz": "Asia/Kolkata"},
+    # West India (Gujarat, Maharashtra)
+    "VABV": {"iata": "BHU", "name": "Bhavnagar Airport",                 "city": "Bhavnagar",   "country": "India", "lat": 21.7522, "lon": 72.1852, "tz": "Asia/Kolkata"},
+    "VAJM": {"iata": "JGA", "name": "Jamnagar Airport",                  "city": "Jamnagar",    "country": "India", "lat": 22.4655, "lon": 70.0126, "tz": "Asia/Kolkata"},
+    "VAHS": {"iata": "RAJ", "name": "Rajkot International Airport",      "city": "Rajkot",      "country": "India", "lat": 22.3600, "lon": 70.7795, "tz": "Asia/Kolkata"},
+    "VAPR": {"iata": "PBD", "name": "Porbandar Airport",                 "city": "Porbandar",   "country": "India", "lat": 21.6487, "lon": 69.6572, "tz": "Asia/Kolkata"},
+    "VABJ": {"iata": "BHJ", "name": "Bhuj Airport",                      "city": "Bhuj",        "country": "India", "lat": 23.2878, "lon": 69.6701, "tz": "Asia/Kolkata"},
+    "VAOZ": {"iata": "ISK", "name": "Nashik Airport",                    "city": "Nashik",      "country": "India", "lat": 20.1196, "lon": 73.9134, "tz": "Asia/Kolkata"},
+    # South India
+    "VOAT": {"iata": "AGX", "name": "Agatti Airport",                    "city": "Agatti",      "country": "India", "lat": 10.8237, "lon": 72.1760, "tz": "Asia/Kolkata"},
+    "VOCP": {"iata": "CDP", "name": "Kadapa Airport",                    "city": "Kadapa",      "country": "India", "lat": 14.5130, "lon": 78.7728, "tz": "Asia/Kolkata"},
+    "VOTK": {"iata": "TCR", "name": "Thoothukudi Airport",               "city": "Thoothukudi", "country": "India", "lat":  8.7242, "lon": 77.9876, "tz": "Asia/Kolkata"},
+    "VOSM": {"iata": "SXV", "name": "Salem Airport",                     "city": "Salem",       "country": "India", "lat": 11.7833, "lon": 78.0660, "tz": "Asia/Kolkata"},
+    "VOPC": {"iata": "PNY", "name": "Pondicherry Airport",               "city": "Pondicherry", "country": "India", "lat": 11.9680, "lon": 79.8120, "tz": "Asia/Kolkata"},
 }
 
 IATA_TO_ICAO = {v["iata"]: k for k, v in AIRPORTS.items()}
@@ -699,111 +777,190 @@ def _fetch_airline_status(
     flight_number: str, airline_iata: str, date_str: str
 ) -> tuple[str, str, str] | None:
     """
-    Try airline-specific public status endpoints for major Middle East carriers.
-    These are best-effort — airline websites often require JS rendering, so failures are expected.
+    Try airline-specific public status endpoints.
+    Covers Indian carriers, Middle East carriers, and common international carriers on India routes.
+    Best-effort — many endpoints require JS/auth so failures are expected.
     Returns (category, display_text, source_name) or None.
     """
     fn = flight_number.replace(" ", "").upper()
     num_part = "".join(c for c in fn if c.isdigit())
+    date_compact = date_str.replace("-", "")  # YYYYMMDD
     base_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json, text/html, */*",
     }
-    try:
-        if airline_iata == "EK":
-            resp = http_requests.get(
-                "https://www.emirates.com/api/flight-status/search",
-                params={"flightNumber": f"EK{num_part}", "departureDate": date_str},
-                headers={**base_headers, "Referer": "https://www.emirates.com/"},
-                timeout=8,
-            )
-            if resp.status_code == 200:
-                try:
-                    data = resp.json()
-                    status_str = (
-                        data.get("status")
-                        or data.get("flightStatus")
-                        or _safe_get(data, "flights", 0, "status")
-                        or ""
-                    )
-                    mapped = _map_external_status(status_str)
+
+    def _try(url, params, headers, source, *field_paths):
+        """GET url, return mapped status tuple or None. field_paths are tried in order."""
+        try:
+            r = http_requests.get(url, params=params, headers=headers, timeout=8)
+            if r.status_code != 200:
+                return None
+            data = r.json()
+            if isinstance(data, list) and data:
+                data = data[0]
+            if not isinstance(data, dict):
+                return None
+            for path in field_paths:
+                val = _safe_get(data, *path) if isinstance(path, tuple) else data.get(path, "")
+                if val:
+                    mapped = _map_external_status(str(val))
                     if mapped:
-                        return mapped[0], mapped[1], "Emirates"
-                except ValueError:
-                    pass
+                        logger.info("%s resolved %s on %s → %s", source, fn, date_str, mapped[0])
+                        return mapped[0], mapped[1], source
+        except Exception as e:
+            logger.debug("%s error for %s: %s", source, fn, e)
+        return None
+
+    try:
+        # --- Indian carriers ---
+        if airline_iata == "AI":
+            return (
+                _try("https://www.airindia.com/api/flight-status",
+                     {"flightNumber": f"AI{num_part}", "departureDate": date_str},
+                     {**base_headers, "Referer": "https://www.airindia.com/"},
+                     "Air India", "status", "flightStatus", ("data", "status"), ("flight", "status"))
+                or _try("https://www.airindia.com/content/dam/air-india/APIs/flightstatus",
+                        {"fn": f"AI{num_part}", "date": date_str},
+                        base_headers, "Air India", "status", "flightStatus")
+            )
+
+        elif airline_iata in ("UK", "IX"):
+            # Vistara merged into Air India; Air India Express same portal
+            airline_label = "Air India Express" if airline_iata == "IX" else "Air India"
+            base_url = "https://www.airindiaexpress.com/api/flight-status" if airline_iata == "IX" else "https://www.airindia.com/api/flight-status"
+            return _try(base_url,
+                        {"flightNumber": f"{airline_iata}{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": f"https://{'www.airindiaexpress.com' if airline_iata == 'IX' else 'www.airindia.com'}/"},
+                        airline_label, "status", "flightStatus", ("data", "status"))
+
+        elif airline_iata == "6E":
+            return (
+                _try("https://book.goindigo.in/api/v1/flightstatus",
+                     {"flightNumber": f"6E{num_part}", "date": date_str},
+                     {**base_headers, "Referer": "https://www.goindigo.in/"},
+                     "IndiGo", "status", "flightStatus", ("flightInfo", "status"), ("data", "flightStatus"))
+                or _try("https://www.goindigo.in/api/flight-status",
+                        {"flightNumber": f"6E{num_part}", "journeyDate": date_str},
+                        {**base_headers, "Referer": "https://www.goindigo.in/"},
+                        "IndiGo", "status", "flightStatus")
+            )
+
+        elif airline_iata == "SG":
+            return _try("https://www.spicejet.com/api/flight-status",
+                        {"flightNumber": f"SG{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.spicejet.com/"},
+                        "SpiceJet", "status", "flightStatus", ("data", "status"))
+
+        elif airline_iata == "QP":
+            return _try("https://www.akasaair.com/api/flightstatus",
+                        {"flightNumber": f"QP{num_part}", "date": date_str},
+                        {**base_headers, "Referer": "https://www.akasaair.com/"},
+                        "Akasa Air", "status", "flightStatus", ("data", "status"))
+
+        elif airline_iata == "I5":
+            return _try("https://www.airasia.com/api/v1/flight-status",
+                        {"flightNumber": f"I5{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.airasia.com/"},
+                        "AIX Connect", "status", "flightStatus", ("data", "status"))
+
+        # --- Middle East carriers ---
+        elif airline_iata == "EK":
+            return _try("https://www.emirates.com/api/flight-status/search",
+                        {"flightNumber": f"EK{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.emirates.com/"},
+                        "Emirates", "status", "flightStatus", ("flights", 0, "status"))
 
         elif airline_iata == "QR":
-            resp = http_requests.get(
-                "https://www.qatarairways.com/api/v1/flight-status",
-                params={"flightNumber": f"QR{num_part}", "departureDate": date_str},
-                headers={**base_headers, "Referer": "https://www.qatarairways.com/"},
-                timeout=8,
-            )
-            if resp.status_code == 200:
-                try:
-                    data = resp.json()
-                    status_str = (
-                        data.get("status")
-                        or _safe_get(data, "flightStatus", "text")
-                        or _safe_get(data, "data", "status")
-                        or ""
-                    )
-                    mapped = _map_external_status(status_str)
-                    if mapped:
-                        return mapped[0], mapped[1], "Qatar Airways"
-                except ValueError:
-                    pass
+            return _try("https://www.qatarairways.com/api/v1/flight-status",
+                        {"flightNumber": f"QR{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.qatarairways.com/"},
+                        "Qatar Airways", "status", ("flightStatus", "text"), ("data", "status"))
 
         elif airline_iata == "EY":
-            resp = http_requests.get(
-                "https://www.etihad.com/api/flight-status",
-                params={"flightNumber": f"EY{num_part}", "departureDate": date_str},
-                headers={**base_headers, "Referer": "https://www.etihad.com/"},
-                timeout=8,
-            )
-            if resp.status_code == 200:
-                try:
-                    data = resp.json()
-                    status_str = data.get("status") or _safe_get(data, "flight", "status") or ""
-                    mapped = _map_external_status(status_str)
-                    if mapped:
-                        return mapped[0], mapped[1], "Etihad"
-                except ValueError:
-                    pass
+            return _try("https://www.etihad.com/api/flight-status",
+                        {"flightNumber": f"EY{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.etihad.com/"},
+                        "Etihad", "status", ("flight", "status"))
 
         elif airline_iata == "TK":
-            resp = http_requests.get(
-                "https://www.turkishairlines.com/api/flight-status",
-                params={"flightNumber": f"TK{num_part}", "flightDate": date_compact if (date_compact := date_str.replace("-", "")) else date_str},
-                headers={**base_headers, "Referer": "https://www.turkishairlines.com/"},
-                timeout=8,
-            )
-            if resp.status_code == 200:
-                try:
-                    data = resp.json()
-                    status_str = data.get("status") or _safe_get(data, "flights", 0, "status") or ""
-                    mapped = _map_external_status(status_str)
-                    if mapped:
-                        return mapped[0], mapped[1], "Turkish Airlines"
-                except ValueError:
-                    pass
+            return _try("https://www.turkishairlines.com/api/flight-status",
+                        {"flightNumber": f"TK{num_part}", "flightDate": date_compact},
+                        {**base_headers, "Referer": "https://www.turkishairlines.com/"},
+                        "Turkish Airlines", "status", ("flights", 0, "status"))
 
         elif airline_iata == "SV":
-            resp = http_requests.get(
-                "https://www.saudia.com/api/flight-status",
-                params={"flightNumber": f"SV{num_part}", "flightDate": date_str},
-                headers={**base_headers, "Referer": "https://www.saudia.com/"},
-                timeout=8,
-            )
-            if resp.status_code == 200:
-                try:
-                    data = resp.json()
-                    status_str = data.get("status") or _safe_get(data, "flightStatus") or ""
-                    mapped = _map_external_status(status_str)
-                    if mapped:
-                        return mapped[0], mapped[1], "Saudia"
-                except ValueError:
-                    pass
+            return _try("https://www.saudia.com/api/flight-status",
+                        {"flightNumber": f"SV{num_part}", "flightDate": date_str},
+                        {**base_headers, "Referer": "https://www.saudia.com/"},
+                        "Saudia", "status", "flightStatus")
+
+        elif airline_iata == "FZ":
+            return _try("https://www.flydubai.com/api/flight-status",
+                        {"flightNumber": f"FZ{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.flydubai.com/"},
+                        "flydubai", "status", "flightStatus", ("data", "status"))
+
+        elif airline_iata == "G9":
+            return _try("https://www.airarabia.com/api/flight-status",
+                        {"flightNumber": f"G9{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.airarabia.com/"},
+                        "Air Arabia", "status", "flightStatus")
+
+        elif airline_iata == "WY":
+            return _try("https://www.omanair.com/api/flight-status",
+                        {"flightNumber": f"WY{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.omanair.com/"},
+                        "Oman Air", "status", "flightStatus", ("data", "status"))
+
+        elif airline_iata == "GF":
+            return _try("https://www.gulfair.com/api/flight-status",
+                        {"flightNumber": f"GF{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.gulfair.com/"},
+                        "Gulf Air", "status", "flightStatus")
+
+        # --- Other international carriers common on India routes ---
+        elif airline_iata == "SQ":
+            return _try("https://www.singaporeair.com/api/v1/flight-status",
+                        {"flightNumber": f"SQ{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.singaporeair.com/"},
+                        "Singapore Airlines", "status", ("flightStatus", "description"), ("data", "status"))
+
+        elif airline_iata == "BA":
+            return _try("https://www.britishairways.com/travel/flightstatus/public/en_in/api",
+                        {"flightNumber": f"BA{num_part}", "scheduledDepartureDate": date_str},
+                        {**base_headers, "Referer": "https://www.britishairways.com/"},
+                        "British Airways", "status", "flightStatus", ("legs", 0, "status"))
+
+        elif airline_iata == "LH":
+            return _try("https://api.lufthansa.com/v1/operations/flightstatus",
+                        {"flightNumber": f"LH{num_part}", "date": date_str},
+                        {**base_headers, "Referer": "https://www.lufthansa.com/"},
+                        "Lufthansa", ("FlightStatusResource", "Flights", "Flight", 0, "FlightStatus", "Definition"))
+
+        elif airline_iata == "AF":
+            return _try("https://www.airfrance.com/api/v1/flight-status",
+                        {"flightNumber": f"AF{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.airfrance.com/"},
+                        "Air France", "status", "flightStatus", ("data", "status"))
+
+        elif airline_iata == "KL":
+            return _try("https://www.klm.com/api/v1/flight-status",
+                        {"flightNumber": f"KL{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.klm.com/"},
+                        "KLM", "status", "flightStatus", ("data", "status"))
+
+        elif airline_iata == "MS":
+            return _try("https://www.egyptair.com/api/flight-status",
+                        {"flightNumber": f"MS{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.egyptair.com/"},
+                        "EgyptAir", "status", "flightStatus")
+
+        elif airline_iata == "PK":
+            return _try("https://www.piac.com.pk/api/flight-status",
+                        {"flightNumber": f"PK{num_part}", "departureDate": date_str},
+                        {**base_headers, "Referer": "https://www.piac.com.pk/"},
+                        "PIA", "status", "flightStatus", ("data", "status"))
 
     except Exception as e:
         logger.debug("Airline status fetch error %s/%s: %s", flight_number, airline_iata, e)
@@ -816,7 +973,9 @@ def _try_enrich_flight_status(
 ) -> tuple[str, str, str] | None:
     """
     Try all external enrichment sources in order.
-    Priority: ixigo (aggregated) → airline-specific.
+    Priority: ixigo (aggregated Indian OTA) → airline official endpoint.
+    Covers Indian carriers (AI, 6E, SG, IX, QP, I5, UK), Middle East (EK, QR, EY, TK, SV, FZ, G9, WY, GF),
+    and other internationals common on India routes (SQ, BA, LH, AF, KL, MS, PK).
     Returns (category, display_text, source_name) or None.
     """
     result = _fetch_ixigo_status(flight_number, date_str)
@@ -886,11 +1045,14 @@ def _infer_status_from_time_and_adsb(
             return ("boarding", "Boarding", "medium")
 
     # ---- No ADS-B signal — use time heuristics ----
+    # NOTE: Lack of ADS-B signal does NOT imply cancellation — many flights operate
+    # without ADS-B coverage.  Only mark as cancelled when we have a positive signal
+    # (e.g. from the schedule API or external enrichment).
     if not is_tracked:
-        if overdue_sec > 14400:  # 4h+ overdue with no signal → likely cancelled
-            return ("cancelled", "Likely Cancelled", "low")
-        elif overdue_sec > 7200:  # 2-4h overdue → possibly cancelled or major delay
-            return ("delayed", "Possibly Delayed", "low")
+        if overdue_sec > 14400:  # 4h+ overdue with no signal — status unknown
+            return ("delayed", "No Update Available", "low")
+        elif overdue_sec > 7200:  # 2-4h overdue
+            return ("delayed", "No Update Available", "low")
         elif overdue_sec > 900:  # 15+ min overdue → delayed
             return ("delayed", f"Delayed ({int(overdue_sec / 60)}m+)", "low")
         elif overdue_sec > 0:  # Just past scheduled but no signal yet (could be boarding)
@@ -962,7 +1124,7 @@ def _verify_flights_with_adsb(flights: list, icao: str, direction: str) -> list:
             )
             if inferred:
                 new_cat, new_text, conf = inferred
-                if status_cat == "unknown" or new_cat in ("departed", "en_route", "boarding", "cancelled"):
+                if status_cat == "unknown" or new_cat in ("departed", "en_route", "boarding"):
                     f["status"]["category"] = new_cat
                     f["status"]["color"] = STATUS_COLOR_MAP.get(new_cat, "gray")
                     if f["status"]["text"].lower() in ("unknown", "scheduled", "on time", "estimated"):

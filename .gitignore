@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+
+.claude/
+
+# Cloudflare Worker
+cloudflare-worker/node_modules/
+cloudflare-worker/.wrangler/
+
+# Tailwind build inputs (output static/tailwind.min.css is committed)
+static/input.css
+tailwind.config.js
