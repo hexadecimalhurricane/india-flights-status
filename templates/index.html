@@ -105,9 +105,9 @@
             </div>
             <div class="flex items-center gap-4 mt-1 pb-1">
                 <span class="text-[9px] text-gray-700 font-sans">On-time rate:</span>
-                <span class="flex items-center gap-1 text-[9px] font-sans text-green-500"><span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>≥70%</span>
-                <span class="flex items-center gap-1 text-[9px] font-sans text-yellow-500"><span class="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block"></span>40–69%</span>
-                <span class="flex items-center gap-1 text-[9px] font-sans text-red-500"><span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block"></span>&lt;40%</span>
+                <span class="flex items-center gap-1 text-[9px] font-sans text-green-500"><span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>≥80%</span>
+                <span class="flex items-center gap-1 text-[9px] font-sans text-yellow-500"><span class="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block"></span>50–79%</span>
+                <span class="flex items-center gap-1 text-[9px] font-sans text-red-500"><span class="w-1.5 h-1.5 rounded-full bg-red-400 inline-block"></span>&lt;50%</span>
                 <span class="flex items-center gap-1 text-[9px] font-sans text-gray-600"><span class="w-1.5 h-1.5 rounded-full bg-gray-600 inline-block"></span>Loading</span>
             </div>
         </div>
@@ -825,10 +825,9 @@
 
         function getOTPColor(pct, total, delayed, cancelled) {
             if (total === 0) return '#4b5563';
-            if (pct >= 70) return '#4ade80';
-            // Below 70%: color by what's causing the disruption
-            if ((cancelled || 0) > (delayed || 0)) return '#f87171'; // cancellations dominate → red
-            return '#facc15'; // delays dominate → yellow
+            if (pct >= 80) return '#4ade80';
+            if (pct >= 50) return '#facc15';
+            return '#f87171';
         }
 
         // Label nudge in the 920×760 coordinate space
