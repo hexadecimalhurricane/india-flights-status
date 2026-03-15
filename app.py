@@ -1541,25 +1541,54 @@ _ICAO_PREFIX_TO_IATA = {v: k for k, v in AIRLINE_IATA_TO_ICAO.items()}
 def _fetch_live_flights_india() -> list:
     """Fetch all airborne aircraft in India's airspace (lat 5.5–37.5, lon 66–98.5).
 
-    Tries OpenSky Network states/all (bounding box) first, falls back to
-    Airplanes.live with a 1000 nm radius from India's geographic centre.
-    Both sources are already acknowledged in the app footer.
+    Source priority (all free, non-commercial licensed):
+      1. OpenSky Network  — bounding box, ODbL
+      2. Airplanes.live   — community ADS-B, no key
+      3. adsb.lol         — community ADS-B, no key
+      4. adsb.fi          — community ADS-B, no key
+      5. ADSBExchange     — RapidAPI free tier (set RAPIDAPI_KEY env var)
     """
     headers = {"User-Agent": "India-Flight-Status-Dashboard/1.0 (non-commercial)"}
 
-    # --- Primary: OpenSky bounding box ---
+    def _in_india(lat, lon):
+        return 5.5 <= lat <= 37.5 and 66.0 <= lon <= 98.5
+
+    def _parse_ac(ac_list, source):
+        """Parse 'ac' array in airplanes.live / adsb.lol / adsb.fi response format."""
+        out = []
+        for ac in ac_list:
+            if ac.get("alt_baro") == "ground":
+                continue
+            lat = ac.get("lat")
+            lon = ac.get("lon")
+            if lat is None or lon is None or not _in_india(lat, lon):
+                continue
+            callsign = (ac.get("flight") or "").strip().upper()
+            if not callsign:
+                continue
+            alt_baro = ac.get("alt_baro")
+            out.append({
+                "icao24": ac.get("hex", ""),
+                "callsign": callsign,
+                "lat": round(lat, 4),
+                "lon": round(lon, 4),
+                "heading": round(ac.get("track") or 0),
+                "alt_ft": alt_baro if isinstance(alt_baro, int) else None,
+                "source": source,
+            })
+        return out
+
+    # 1. OpenSky — native bounding box, preferred
     try:
         resp = http_requests.get(
             "https://opensky-network.org/api/states/all",
             params={"lamin": 5.5, "lomin": 66.0, "lamax": 37.5, "lomax": 98.5},
-            headers=headers,
-            timeout=15,
+            headers=headers, timeout=15,
         )
         if resp.status_code == 200:
-            states = resp.json().get("states") or []
             result = []
-            for s in states:
-                if len(s) < 9 or s[8]:  # skip on-ground
+            for s in resp.json().get("states") or []:
+                if len(s) < 9 or s[8]:
                     continue
                 lat, lon = s[6], s[5]
                 if lat is None or lon is None:
@@ -1577,43 +1606,64 @@ def _fetch_live_flights_india() -> list:
                     "alt_ft": round(alt_m * 3.28084) if alt_m else None,
                     "source": "opensky",
                 })
-            logger.info("Live flights (OpenSky): %d aircraft", len(result))
-            return result
+            if result:
+                logger.info("Live flights (OpenSky): %d aircraft", len(result))
+                return result
     except Exception as e:
         logger.warning("OpenSky live flights error: %s", e)
 
-    # --- Fallback: Airplanes.live (centre of India, 1000 nm radius) ---
+    # 2. Airplanes.live — already used for airport ADS-B queries
     try:
-        resp = http_requests.get(f"{ADSB_API_BASE}/point/22/82/1000", timeout=15)
+        resp = http_requests.get(f"{ADSB_API_BASE}/point/22/82/1000", headers=headers, timeout=15)
         if resp.status_code == 200:
-            result = []
-            for ac in resp.json().get("ac", []):
-                if ac.get("alt_baro") == "ground":
-                    continue
-                lat = ac.get("lat")
-                lon = ac.get("lon")
-                if lat is None or lon is None:
-                    continue
-                if not (5.5 <= lat <= 37.5 and 66 <= lon <= 98.5):
-                    continue
-                callsign = (ac.get("flight") or "").strip().upper()
-                if not callsign:
-                    continue
-                alt_baro = ac.get("alt_baro")
-                result.append({
-                    "icao24": ac.get("hex", ""),
-                    "callsign": callsign,
-                    "lat": round(lat, 4),
-                    "lon": round(lon, 4),
-                    "heading": round(ac.get("track") or 0),
-                    "alt_ft": alt_baro if isinstance(alt_baro, int) else None,
-                    "source": "airplanes.live",
-                })
-            logger.info("Live flights (Airplanes.live): %d aircraft", len(result))
-            return result
+            result = _parse_ac(resp.json().get("ac", []), "airplanes.live")
+            if result:
+                logger.info("Live flights (Airplanes.live): %d aircraft", len(result))
+                return result
     except Exception as e:
         logger.warning("Airplanes.live live flights error: %s", e)
 
+    # 3. adsb.lol — community feed, same response schema as airplanes.live
+    try:
+        resp = http_requests.get("https://api.adsb.lol/v2/point/22/82/1000", headers=headers, timeout=15)
+        if resp.status_code == 200:
+            result = _parse_ac(resp.json().get("ac", []), "adsb.lol")
+            if result:
+                logger.info("Live flights (adsb.lol): %d aircraft", len(result))
+                return result
+    except Exception as e:
+        logger.warning("adsb.lol live flights error: %s", e)
+
+    # 4. adsb.fi — community feed, slightly different URL pattern
+    try:
+        resp = http_requests.get("https://api.adsb.fi/v1/lat/22/lon/82/dist/1000", headers=headers, timeout=15)
+        if resp.status_code == 200:
+            result = _parse_ac(resp.json().get("ac", []), "adsb.fi")
+            if result:
+                logger.info("Live flights (adsb.fi): %d aircraft", len(result))
+                return result
+    except Exception as e:
+        logger.warning("adsb.fi live flights error: %s", e)
+
+    # 5. ADSBExchange via RapidAPI — set RAPIDAPI_KEY env var to enable
+    rapidapi_key = os.environ.get("RAPIDAPI_KEY", "")
+    if rapidapi_key:
+        try:
+            resp = http_requests.get(
+                "https://adsbexchange-com1.p.rapidapi.com/v2/lat/22/lon/82/dist/1000/",
+                headers={**headers, "X-RapidAPI-Key": rapidapi_key,
+                          "X-RapidAPI-Host": "adsbexchange-com1.p.rapidapi.com"},
+                timeout=15,
+            )
+            if resp.status_code == 200:
+                result = _parse_ac(resp.json().get("ac", []), "adsbexchange")
+                if result:
+                    logger.info("Live flights (ADSBExchange): %d aircraft", len(result))
+                    return result
+        except Exception as e:
+            logger.warning("ADSBExchange live flights error: %s", e)
+
+    logger.warning("All live flight sources failed or returned no data")
     return []
 
 

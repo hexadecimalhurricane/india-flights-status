@@ -83,15 +83,15 @@
         <div class="max-w-7xl mx-auto">
             <div class="flex items-center justify-between mb-1">
                 <div class="flex items-center gap-3">
-                    <span id="map-mode-label" class="text-[10px] text-gray-700 font-sans tracking-widest uppercase">Airport OTP Overview</span>
+                    <span id="map-mode-label" class="text-sm text-gray-400 font-sans tracking-widest uppercase font-medium">Airports OTP</span>
                     <div class="flex rounded border border-board-border overflow-hidden">
                         <button id="btn-otp-view" onclick="setMapMode('otp')"
-                            class="text-[10px] font-sans px-2 py-0.5 bg-blue-600/20 text-blue-400 border-r border-board-border transition-colors">
-                            OTP
+                            class="text-sm font-sans font-medium px-3 py-1 bg-blue-600/20 text-blue-400 border-r border-board-border transition-colors">
+                            Airports OTP
                         </button>
                         <button id="btn-live-view" onclick="setMapMode('live')"
-                            class="text-[10px] font-sans px-2 py-0.5 text-gray-500 hover:text-gray-300 transition-colors">
-                            ✈ Live
+                            class="text-sm font-sans font-medium px-3 py-1 text-gray-500 hover:text-gray-300 transition-colors">
+                            ✈ Live Flights
                         </button>
                     </div>
                 </div>
@@ -959,9 +959,9 @@
                 liveGroup.style.display = '';
                 legendOtp.classList.add('hidden');
                 legendLive.classList.remove('hidden');
-                btnOtp.className  = 'text-[10px] font-sans px-2 py-0.5 text-gray-500 hover:text-gray-300 border-r border-board-border transition-colors';
-                btnLive.className = 'text-[10px] font-sans px-2 py-0.5 bg-blue-600/20 text-blue-400 transition-colors';
-                modeLabel.textContent = 'Live Domestic Flights';
+                btnOtp.className  = 'text-sm font-sans font-medium px-3 py-1 text-gray-500 hover:text-gray-300 border-r border-board-border transition-colors';
+                btnLive.className = 'text-sm font-sans font-medium px-3 py-1 bg-blue-600/20 text-blue-400 transition-colors';
+                modeLabel.textContent = 'Live Flights';
                 fetchLiveFlights();
                 // refresh every 60s while in live mode
                 if (!liveFlightsTimer) liveFlightsTimer = setInterval(fetchLiveFlights, 60000);
@@ -970,9 +970,9 @@
                 dotsGroup.style.display = '';
                 legendOtp.classList.remove('hidden');
                 legendLive.classList.add('hidden');
-                btnLive.className = 'text-[10px] font-sans px-2 py-0.5 text-gray-500 hover:text-gray-300 transition-colors';
-                btnOtp.className  = 'text-[10px] font-sans px-2 py-0.5 bg-blue-600/20 text-blue-400 border-r border-board-border transition-colors';
-                modeLabel.textContent = 'Airport OTP Overview';
+                btnLive.className = 'text-sm font-sans font-medium px-3 py-1 text-gray-500 hover:text-gray-300 transition-colors';
+                btnOtp.className  = 'text-sm font-sans font-medium px-3 py-1 bg-blue-600/20 text-blue-400 border-r border-board-border transition-colors';
+                modeLabel.textContent = 'Airports OTP';
                 if (liveFlightsTimer) { clearInterval(liveFlightsTimer); liveFlightsTimer = null; }
                 renderMapDots();
             }
@@ -988,13 +988,35 @@
             } catch (e) { console.error('Live flights fetch error:', e); }
         }
 
+        // Shared live-flight tooltip element
+        const _liveTooltip = (() => {
+            const el = document.createElement('div');
+            el.id = 'live-tooltip';
+            el.style.cssText = 'display:none;position:fixed;pointer-events:none;z-index:100;' +
+                'background:#1e1e2a;border:1px solid #2a2a35;border-radius:8px;' +
+                'padding:8px 12px;font-family:JetBrains Mono,monospace;font-size:11px;' +
+                'color:#d1d5db;white-space:nowrap;line-height:1.6;box-shadow:0 4px 16px rgba(0,0,0,0.5)';
+            document.body.appendChild(el);
+            return el;
+        })();
+
+        function _formatDelay(delayMin, matched) {
+            if (!matched || delayMin == null) return '<span style="color:#6b7280">Delay unknown</span>';
+            if (delayMin === 0) return '<span style="color:#4ade80">On time</span>';
+            if (delayMin < 60) return `<span style="color:#facc15">+${delayMin} min delayed</span>`;
+            const h = Math.floor(delayMin / 60), m = delayMin % 60;
+            const txt = m > 0 ? `+${h}h ${m}m delayed` : `+${h}h delayed`;
+            return `<span style="color:${delayMin >= 240 ? '#fb923c' : '#facc15'}">${txt}</span>`;
+        }
+
         function renderLiveFlights() {
             const g = document.getElementById('live-flights-group');
             const liveCount = document.getElementById('live-count');
             if (!g) return;
 
-            // Airplane SVG path pointing "up" (north). Rotated by heading.
-            const PLANE_PATH = 'M0,-9 L5,6 L0,3 L-5,6 Z';
+            // Top-down airplane silhouette pointing north, rotated by heading.
+            // Fuselage + swept wings + twin tail fins.
+            const PLANE_PATH = 'M0,-8 L1.5,-4 L7,1.5 L7,3.5 L1.5,2 L2.5,6.5 L4,7.5 L4,9 L0,7.5 L-4,9 L-4,7.5 L-2.5,6.5 L-1.5,2 L-7,3.5 L-7,1.5 L-1.5,-4 Z';
 
             liveCount.textContent = `${liveFlightsData.length} aircraft`;
 
@@ -1003,21 +1025,39 @@
                 const color  = getLiveFlightColor(ac.delay_minutes, ac.matched);
                 const hdg    = ac.heading || 0;
 
-                const label = ac.flight_number || ac.callsign;
-                const delay = ac.delay_minutes != null
-                    ? (ac.delay_minutes === 0 ? 'On time' : `+${ac.delay_minutes} min delay`)
-                    : 'Delay unknown';
-                const route = (ac.origin && ac.destination) ? ` · ${ac.origin}→${ac.destination}` : '';
-                const alt   = ac.alt_ft ? ` · ${ac.alt_ft.toLocaleString()} ft` : '';
-                const tip   = `${label}${ac.airline ? ' · ' + ac.airline : ''}${route}\n${delay}${alt}`;
-
-                return `<g transform="translate(${x},${y})">
-                    <path d="${PLANE_PATH}" fill="${color}" opacity="0.92"
-                          transform="rotate(${hdg})" stroke="#060e1a" stroke-width="0.8">
-                        <title>${tip}</title>
-                    </path>
+                return `<g class="live-ac" data-idx="${liveFlightsData.indexOf(ac)}"
+                           style="cursor:pointer"
+                           transform="translate(${x},${y})">
+                    <circle r="11" fill="transparent"/>
+                    <path d="${PLANE_PATH}" fill="${color}" opacity="0.93"
+                          transform="rotate(${hdg})" stroke="#060e1a" stroke-width="0.7"/>
                 </g>`;
             }).join('');
+
+            // Attach hover events after render
+            g.querySelectorAll('.live-ac').forEach(el => {
+                el.addEventListener('mouseenter', evt => {
+                    const ac = liveFlightsData[+el.dataset.idx];
+                    if (!ac) return;
+                    const label = ac.flight_number || ac.callsign;
+                    const route = (ac.origin && ac.destination) ? `${ac.origin} → ${ac.destination}` : '';
+                    const alt   = ac.alt_ft ? `${ac.alt_ft.toLocaleString()} ft` : '';
+                    _liveTooltip.innerHTML =
+                        `<div style="color:#fff;font-weight:700;font-size:13px">${label}</div>` +
+                        (ac.airline ? `<div style="color:#9ca3af;font-size:10px">${ac.airline}</div>` : '') +
+                        (route ? `<div style="margin-top:3px">${route}</div>` : '') +
+                        `<div style="margin-top:2px">${_formatDelay(ac.delay_minutes, ac.matched)}</div>` +
+                        (alt ? `<div style="color:#6b7280;font-size:10px">${alt}</div>` : '');
+                    _liveTooltip.style.display = 'block';
+                    _liveTooltip.style.left = (evt.clientX + 14) + 'px';
+                    _liveTooltip.style.top  = (evt.clientY - 10) + 'px';
+                });
+                el.addEventListener('mousemove', evt => {
+                    _liveTooltip.style.left = (evt.clientX + 14) + 'px';
+                    _liveTooltip.style.top  = (evt.clientY - 10) + 'px';
+                });
+                el.addEventListener('mouseleave', () => { _liveTooltip.style.display = 'none'; });
+            });
         }
 
         function selectAirportFromMap(iata) {
