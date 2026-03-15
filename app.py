@@ -126,8 +126,8 @@ IATA_TO_ICAO = {v["iata"]: k for k, v in AIRPORTS.items()}
 # Common IATA-to-ICAO airline prefix mapping for ADS-B callsign matching
 AIRLINE_IATA_TO_ICAO = {
     # Indian carriers
-    "AI": "AIC", "6E": "IGO", "UK": "UKA", "SG": "SEJ", "IX": "AXB",
-    "I5": "IAD", "QP": "ABT", "G8": "GOW", "S5": "SSW",
+    "AI": "AIC", "6E": "IGO", "UK": "VTI", "SG": "SEJ", "IX": "IAD",
+    "I5": "AXB", "QP": "ANB", "G8": "GOW", "S5": "OTK",
     # International carriers (common on Indian routes)
     "EK": "UAE", "QR": "QTR", "SV": "SVA", "EY": "ETD", "TK": "THY",
     "BA": "BAW", "LH": "DLH", "AF": "AFR", "KL": "KLM", "SQ": "SIA",
@@ -136,6 +136,23 @@ AIRLINE_IATA_TO_ICAO = {
     "UL": "ALK", "AC": "ACA", "LX": "SWR", "OS": "AUA", "AZ": "ITY",
     "IB": "IBE", "VS": "VIR", "MS": "MSR", "WY": "OMA", "GF": "GFA",
     "FZ": "FDB", "G9": "ABY", "KU": "KAC", "RJ": "RJA",
+}
+
+# ICAO callsign prefixes of Indian airlines operating domestic routes.
+# Used to filter the live-flights overlay to domestic-only traffic.
+# Includes legacy/merged carriers that may still appear in ADS-B feeds.
+INDIAN_DOMESTIC_PREFIXES = {
+    "IGO",  # IndiGo (6E)
+    "SEJ",  # SpiceJet (SG)
+    "AIC",  # Air India (AI)
+    "IAD",  # Air India Express (IX)
+    "AXB",  # AIX Connect / Air Asia India (I5)
+    "ANB",  # Akasa Air (QP)
+    "GOW",  # Go First (G8) — defunct but may still appear
+    "VTI",  # Vistara (UK) — merged into AI, may still appear
+    "OTK",  # Star Air (S5)
+    "LLR",  # Alliance Air — mostly defunct
+    "IFF",  # IndiGo (alternate/historical)
 }
 
 CACHE_TTL = 180
@@ -1668,11 +1685,12 @@ def _fetch_live_flights_india() -> list:
 
 
 def _build_flight_delay_index() -> dict:
-    """Build a callsign → delay info index from all currently cached scheduled flights.
+    """Build a callsign → delay/route/ETA index from all currently cached scheduled flights.
 
-    Maps ICAO callsign (e.g. 'IGO123') to delay_minutes and route info so the
-    live-flights overlay can colour aircraft by how late they are.
+    Only indexes domestic routes (both origin and destination are Indian airports).
+    Includes ETA as the best available arrival timestamp for the hover tooltip.
     """
+    indian_iata_set = {v["iata"] for v in AIRPORTS.values()}
     index: dict = {}
     for icao_ap, directions in _cache.items():
         for _dir, entry in directions.items():
@@ -1681,7 +1699,12 @@ def _build_flight_delay_index() -> dict:
             for f in (entry.get("data") or []):
                 airline_iata = (f.get("airline") or {}).get("iata", "")
                 icao_prefix = AIRLINE_IATA_TO_ICAO.get(airline_iata, "")
-                if not icao_prefix:
+                if not icao_prefix or icao_prefix not in INDIAN_DOMESTIC_PREFIXES:
+                    continue
+                origin_iata = (f.get("origin") or {}).get("iata", "")
+                dest_iata   = (f.get("destination") or {}).get("iata", "")
+                # Only index domestic legs — both airports must be in our Indian registry
+                if origin_iata not in indian_iata_set or dest_iata not in indian_iata_set:
                     continue
                 fn = (f.get("flight_number") or "").replace(" ", "").upper()
                 num_part = "".join(c for c in fn if c.isdigit())
@@ -1689,13 +1712,18 @@ def _build_flight_delay_index() -> dict:
                     continue
                 callsign = f"{icao_prefix}{num_part}"
                 delay = f.get("delay_minutes") or 0
+                times = f.get("times") or {}
+                eta = (times.get("actual_arrival")
+                       or times.get("estimated_arrival")
+                       or times.get("scheduled_arrival"))
                 if callsign not in index or delay > index[callsign].get("delay_minutes", 0):
                     index[callsign] = {
                         "delay_minutes": delay,
                         "flight_number": f.get("flight_number", ""),
                         "airline": (f.get("airline") or {}).get("name", ""),
-                        "origin": (f.get("origin") or {}).get("iata", ""),
-                        "destination": (f.get("destination") or {}).get("iata", ""),
+                        "origin": origin_iata,
+                        "destination": dest_iata,
+                        "eta": eta,  # unix timestamp
                     }
     return index
 
@@ -1939,7 +1967,7 @@ async def get_airports():
 
 @app.get("/api/live-flights")
 async def get_live_flights():
-    """Return all airborne aircraft over India with delay info where available."""
+    """Return domestic Indian aircraft currently airborne, with delay/ETA where available."""
     global _live_flights_cache
     now = time.time()
     if now - _live_flights_cache["fetched_at"] > LIVE_FLIGHTS_CACHE_TTL:
@@ -1953,6 +1981,10 @@ async def get_live_flights():
     result = []
     for ac in aircraft_list:
         callsign = ac["callsign"]
+        # Filter to Indian domestic airline callsigns only
+        prefix = callsign[:3]
+        if prefix not in INDIAN_DOMESTIC_PREFIXES:
+            continue
         info = delay_index.get(callsign, {})
         result.append({
             "icao24": ac["icao24"],
@@ -1966,6 +1998,7 @@ async def get_live_flights():
             "airline": info.get("airline", ""),
             "origin": info.get("origin", ""),
             "destination": info.get("destination", ""),
+            "eta": info.get("eta"),  # unix timestamp of best arrival estimate
             "matched": bool(info),
         })
 

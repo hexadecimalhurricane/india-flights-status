@@ -1042,11 +1042,19 @@
                     const label = ac.flight_number || ac.callsign;
                     const route = (ac.origin && ac.destination) ? `${ac.origin} → ${ac.destination}` : '';
                     const alt   = ac.alt_ft ? `${ac.alt_ft.toLocaleString()} ft` : '';
+                    let etaStr = '';
+                    if (ac.eta) {
+                        const etaDate = new Date(ac.eta * 1000);
+                        const hh = String(etaDate.getHours()).padStart(2,'0');
+                        const mm = String(etaDate.getMinutes()).padStart(2,'0');
+                        etaStr = `ETA ${hh}:${mm}`;
+                    }
                     _liveTooltip.innerHTML =
                         `<div style="color:#fff;font-weight:700;font-size:13px">${label}</div>` +
                         (ac.airline ? `<div style="color:#9ca3af;font-size:10px">${ac.airline}</div>` : '') +
                         (route ? `<div style="margin-top:3px">${route}</div>` : '') +
                         `<div style="margin-top:2px">${_formatDelay(ac.delay_minutes, ac.matched)}</div>` +
+                        (etaStr ? `<div style="color:#60a5fa;font-size:10px;margin-top:2px">${etaStr}</div>` : '') +
                         (alt ? `<div style="color:#6b7280;font-size:10px">${alt}</div>` : '');
                     _liveTooltip.style.display = 'block';
                     _liveTooltip.style.left = (evt.clientX + 14) + 'px';
