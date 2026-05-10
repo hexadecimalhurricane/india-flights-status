@@ -1,12 +1,22 @@
-name = "sight-proxy"
+name = "sight"
 main = "src/worker.ts"
 compatibility_date = "2025-01-01"
 
-# Set the API key with:
-#   npx wrangler secret put ANTHROPIC_API_KEY
+# One deployment serves both:
+#   /describe  -> Worker code (proxies to Anthropic with the key)
+#   /*         -> static PWA assets from ../web
 #
-# Optional: lock the proxy to your apps with a shared bearer token:
-#   npx wrangler secret put CLIENT_TOKEN
+# Set secrets first:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put CLIENT_TOKEN     # optional, locks the proxy to your app
+#
+# Deploy:
+#   npx wrangler deploy
+
+[assets]
+directory = "../web"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
 
 [vars]
 MODEL = "claude-opus-4-7"

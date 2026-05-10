@@ -1,10 +1,9 @@
-/// <reference types="@cloudflare/workers-types" />
-
 interface Env {
   ANTHROPIC_API_KEY: string;
   CLIENT_TOKEN?: string;
   MODEL: string;
   MAX_TOKENS: string;
+  ASSETS: { fetch: (req: Request) => Promise<Response> };
 }
 
 interface DescribeRequest {
@@ -39,7 +38,8 @@ export default {
 
     const url = new URL(req.url);
     if (url.pathname === "/health") return json({ ok: true });
-    if (url.pathname !== "/describe" || req.method !== "POST") return json({ error: "not found" }, 404);
+    if (url.pathname !== "/describe") return env.ASSETS.fetch(req);
+    if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
     if (env.CLIENT_TOKEN) {
       const auth = req.headers.get("authorization") ?? "";

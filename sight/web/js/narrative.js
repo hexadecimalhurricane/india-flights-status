@@ -8,15 +8,13 @@ let lastNarrative = "";
 export function getLastNarrative() { return lastNarrative; }
 
 export async function describe(video, question) {
-  if (!settings.proxyUrl) {
-    say("Set the proxy URL in settings.", Priority.NARRATIVE, 0);
-    return;
-  }
+  // Default to the same origin (works when the Worker serves both the PWA and /describe).
+  const base = (settings.proxyUrl || location.origin).replace(/\/$/, "");
   say("One moment.", Priority.NARRATIVE, 0);
   const frames = [grabFrame(video, 640)];
   const ctx = getSoundContext();
   try {
-    const res = await fetch(settings.proxyUrl.replace(/\/$/, "") + "/describe", {
+    const res = await fetch(base + "/describe", {
       method: "POST",
       headers: {
         "content-type": "application/json",

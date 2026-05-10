@@ -1,36 +1,9 @@
-// On-device ambient-sound classification via TF.js YAMNet (loaded from CDN).
-// Plus continuous SpeechRecognition for voice commands and (optionally) ambient transcript.
+// Ambient-sound awareness via WebAudio FFT heuristics + voice commands via SpeechRecognition.
+// (YAMNet via tfjs-tflite is the next upgrade — captures real categories like "siren", "dog bark".)
 import { say, Priority } from "./speech.js";
-
-// Subset of YAMNet's 521 classes worth narrating to a blind walker, with severity.
-// Index/label list: https://github.com/tensorflow/models/blob/master/research/audioset/yamnet/yamnet_class_map.csv
-const ALERTS = {
-  // hazards
-  "Vehicle horn, car horn, honking": { say: "horn", pri: Priority.HAZARD, cd: 2000 },
-  "Siren": { say: "siren", pri: Priority.HAZARD, cd: 4000 },
-  "Emergency vehicle": { say: "emergency vehicle", pri: Priority.HAZARD, cd: 4000 },
-  "Reversing beeps": { say: "reversing vehicle", pri: Priority.HAZARD, cd: 3000 },
-  "Train horn": { say: "train horn", pri: Priority.HAZARD, cd: 4000 },
-  "Bicycle bell": { say: "bicycle bell", pri: Priority.HAZARD, cd: 2500 },
-  "Skidding": { say: "tires skidding", pri: Priority.HAZARD, cd: 2500 },
-  "Glass": { say: "breaking glass", pri: Priority.HAZARD, cd: 4000 },
-  "Smoke detector, smoke alarm": { say: "smoke alarm", pri: Priority.HAZARD, cd: 5000 },
-  "Fire alarm": { say: "fire alarm", pri: Priority.HAZARD, cd: 5000 },
-  // signals
-  "Doorbell": { say: "doorbell", pri: Priority.SALIENT, cd: 5000 },
-  "Telephone bell ringing": { say: "phone ringing", pri: Priority.AMBIENT, cd: 6000 },
-  "Beep, bleep": { say: "beeping", pri: Priority.AMBIENT, cd: 6000 },
-  // social
-  "Crying, sobbing": { say: "someone crying", pri: Priority.SALIENT, cd: 8000 },
-  "Baby cry, infant cry": { say: "baby crying", pri: Priority.SALIENT, cd: 8000 },
-  "Dog": { say: "dog barking", pri: Priority.SALIENT, cd: 6000 },
-  "Bark": { say: "dog barking", pri: Priority.SALIENT, cd: 6000 },
-};
 
 const recentSoundHits = []; // [{label, ts}]
 let lastSpeechTranscript = "";
-
-let model = null;
 let stream = null;
 let running = false;
 
@@ -38,33 +11,20 @@ export async function startSound() {
   if (running) return;
   if (!navigator.mediaDevices?.getUserMedia) return;
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-  } catch (e) { console.warn("mic denied", e); return; }
-  await loadDeps();
-  model = await window.speechCommands.create("BROWSER_FFT").catch(() => null); // placeholder; YAMNet loaded below
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    });
+  } catch (e) {
+    console.warn("mic denied", e);
+    return;
+  }
   running = true;
   classifyLoop();
   startSpeechRecognition();
 }
 
-async function loadDeps() {
-  if (window.speechCommands) return;
-  // Note: full YAMNet via TF.js requires loading a custom graph; here we use a pragmatic fallback:
-  // the speech-commands package gives us mic plumbing, and we use a small YAMNet TFLite via tfjs-tflite if present.
-  await loadScript("https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.5.4/dist/speech-commands.min.js");
-}
-
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = src; s.onload = resolve; s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-
-// Lightweight ambient classifier using AnalyserNode features as a heuristic backup
-// when a full YAMNet model isn't available. Detects loud broadband transients (likely hazards)
-// and persistent low-frequency rumble (vehicle approaching).
+// Heuristic ambient classifier: loud broadband transients (sirens, alarms, horns) and
+// persistent low-frequency rumble (vehicles). Replace with YAMNet for real labels.
 async function classifyLoop() {
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   const src = ctx.createMediaStreamSource(stream);
@@ -74,17 +34,19 @@ async function classifyLoop() {
   src.connect(analyser);
   const buf = new Uint8Array(analyser.frequencyBinCount);
   let lastHazardAt = 0;
+  let lastVehicleAt = 0;
   while (running) {
     analyser.getByteFrequencyData(buf);
-    const low = avg(buf, 0, 30);       // ~0-650Hz: engines, rumble
-    const mid = avg(buf, 30, 200);     // speech
-    const high = avg(buf, 200, 600);   // sirens, beeps, glass
+    const low = avg(buf, 0, 30);     // ~0-650 Hz: engines, rumble
+    const mid = avg(buf, 30, 200);   // speech band
+    const high = avg(buf, 200, 600); // sirens, beeps, glass
     const now = performance.now();
     if (high > 130 && now - lastHazardAt > 2500) {
       lastHazardAt = now;
       addSoundHit("high-pitched alert");
       say("alert sound", Priority.HAZARD, 2500);
-    } else if (low > 150 && low - mid > 25) {
+    } else if (low > 150 && low - mid > 25 && now - lastVehicleAt > 6000) {
+      lastVehicleAt = now;
       addSoundHit("vehicle rumble");
     }
     await sleep(220);
@@ -115,10 +77,13 @@ function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 let recog = null;
 let onCmd = () => {};
 export function onVoiceCommand(fn) { onCmd = fn; }
+export function voiceCommandsAvailable() {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
 
 function startSpeechRecognition() {
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!Rec) return;
+  if (!Rec) return; // iOS Safari has no SpeechRecognition; UI must rely on the button + AirPods media keys.
   recog = new Rec();
   recog.continuous = true;
   recog.interimResults = false;
