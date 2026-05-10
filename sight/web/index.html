@@ -13,16 +13,19 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <video id="cam" autoplay playsinline muted></video>
-  <canvas id="overlay"></canvas>
+  <video id="cam" autoplay playsinline muted aria-hidden="true"></video>
+  <canvas id="overlay" aria-hidden="true"></canvas>
 
-  <header id="status" aria-live="polite">Tap anywhere to start</header>
+  <main id="screen" role="main" aria-label="Sight. Tap anywhere to begin. Then single tap to describe what's ahead, double tap to start road crossing mode, or hold for instructions.">
+    <header id="status" aria-live="polite" aria-atomic="true">Sight. Tap anywhere to begin.</header>
+  </main>
 
-  <button id="describeBtn" aria-label="Describe what's around me">Describe</button>
+  <button id="settingsBtn" aria-label="Settings (for sighted helpers)">⚙</button>
 
   <section id="settings" hidden>
     <h2>Settings</h2>
-    <label>Proxy URL <input id="proxyUrl" type="url" placeholder="https://sight-proxy.your-name.workers.dev"></label>
+    <p class="hint">For sighted helpers. The blind user does not need any of this — the app is voice-first.</p>
+    <label>Proxy URL <input id="proxyUrl" type="url" placeholder="leave blank to use this site"></label>
     <label>Client token (optional) <input id="clientToken" type="password"></label>
     <label>Voice <select id="voice"></select></label>
     <label>Speech rate <input id="rate" type="range" min="0.7" max="1.6" step="0.05" value="1.05"></label>
@@ -30,8 +33,6 @@
     <label><input id="ambient" type="checkbox" checked> Sound classification</label>
     <button id="closeSettings">Done</button>
   </section>
-
-  <button id="settingsBtn" aria-label="Settings">⚙</button>
 
   <script type="module" src="js/main.js"></script>
 </body>

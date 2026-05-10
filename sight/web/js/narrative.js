@@ -8,10 +8,20 @@ let lastNarrative = "";
 export function getLastNarrative() { return lastNarrative; }
 
 export async function describe(video, question) {
-  // Default to the same origin (works when the Worker serves both the PWA and /describe).
-  const base = (settings.proxyUrl || location.origin).replace(/\/$/, "");
   say("One moment.", Priority.NARRATIVE, 0);
-  const frames = [grabFrame(video, 640)];
+  const text = await callProxy(video, { question, mode: "describe" });
+  if (text) { lastNarrative = text; say(text, Priority.NARRATIVE, 0); }
+  else say("No description available.", Priority.NARRATIVE, 0);
+}
+
+// Crossing mode and read mode use describeMode; the caller decides how to speak the result.
+export async function describeMode(video, mode, question) {
+  return await callProxy(video, { question, mode });
+}
+
+async function callProxy(video, { question, mode }) {
+  const base = (settings.proxyUrl || location.origin).replace(/\/$/, "");
+  const frames = [grabFrame(video, mode === "crossing" ? 480 : 640)];
   const ctx = getSoundContext();
   try {
     const res = await fetch(base + "/describe", {
@@ -23,21 +33,17 @@ export async function describe(video, question) {
       body: JSON.stringify({
         images: frames,
         question,
+        mode,
         sound_hints: ctx.sound_hints,
         speech: ctx.speech,
       }),
     });
-    if (!res.ok) {
-      say("Description failed.", Priority.NARRATIVE, 0);
-      return;
-    }
+    if (!res.ok) return "";
     const data = await res.json();
-    lastNarrative = data.text || "";
-    if (lastNarrative) say(lastNarrative, Priority.NARRATIVE, 0);
-    else say("No description available.", Priority.NARRATIVE, 0);
+    return (data.text || "").trim();
   } catch (e) {
     console.warn(e);
-    say("Network error.", Priority.NARRATIVE, 0);
+    return "";
   }
 }
 

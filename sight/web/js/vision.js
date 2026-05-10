@@ -1,16 +1,26 @@
-// On-device object detection at ~5 fps using TF.js COCO-SSD (loaded from CDN).
-// Emits events: detected objects with normalized bbox, derived pan + closeness.
+// Object detection + path-zone hazard logic + looming escalation.
+// COCO-SSD at ~5 fps, fed through tracker.js for per-object motion.
 import { say, Priority } from "./speech.js";
-import { setProximity, tick } from "./earcons.js";
+import { setProximity } from "./earcons.js";
 import { settings } from "./store.js";
+import { update as updateTracker, reset as resetTracker } from "./tracker.js";
 
-const HAZARD_CLASSES = new Set(["car", "truck", "bus", "motorcycle", "bicycle", "train"]);
+const VEHICLE_CLASSES = new Set(["car", "truck", "bus", "motorcycle", "bicycle", "train"]);
 const PERSON_CLASSES = new Set(["person"]);
-const STATIC_OBSTACLE = new Set(["chair", "bench", "fire hydrant", "stop sign", "parking meter", "potted plant"]);
+const STATIC_OBSTACLE = new Set(["chair", "bench", "fire hydrant", "stop sign", "parking meter", "potted plant", "traffic light"]);
+
+// Walking path zone: central horizontal third, bottom 60% of frame.
+// Anything inside this rectangle is "in your path" and gets priority bumped.
+const PATH_X = [0.30, 0.70];
+const PATH_Y = [0.40, 1.00];
 
 let model = null;
 let video = null;
 let running = false;
+let mode = "default"; // "default" | "crossing"
+
+export function setMode(m) { mode = m; resetTracker(); }
+export function getMode() { return mode; }
 
 export async function startVision(videoEl) {
   video = videoEl;
@@ -21,9 +31,7 @@ export async function startVision(videoEl) {
   loop();
 }
 
-export function stopVision() {
-  running = false;
-}
+export function stopVision() { running = false; }
 
 async function loadDeps() {
   if (window.cocoSsd) return;
@@ -42,9 +50,9 @@ function loadScript(src) {
 async function loop() {
   while (running) {
     const t0 = performance.now();
-    if (video.readyState >= 2) {
+    if (video.readyState >= 2 && video.videoWidth > 0) {
       try {
-        const preds = await model.detect(video, 8, 0.55);
+        const preds = await model.detect(video, 10, 0.50);
         process(preds);
       } catch (e) { console.warn("detect", e); }
     }
@@ -56,30 +64,67 @@ async function loop() {
 function process(preds) {
   if (!preds.length) { setProximity(0, 0); return; }
   const w = video.videoWidth, h = video.videoHeight;
-  let nearest = null;
-  for (const p of preds) {
-    const [x, y, bw, bh] = p.bbox;
-    const cx = (x + bw / 2) / w;       // 0..1
-    const bottom = (y + bh) / h;        // ground-contact heuristic: closer = lower in frame
-    const area = (bw * bh) / (w * h);
-    const closeness = Math.min(1, Math.max(area * 4, bottom > 0.55 ? (bottom - 0.55) * 2 : 0));
-    const pan = (cx - 0.5) * 2;         // -1..1
-    const item = { ...p, cx, bottom, area, closeness, pan };
-    if (!nearest || item.closeness > nearest.closeness) nearest = item;
+  const tracked = updateTracker(preds, w, h);
 
-    if (HAZARD_CLASSES.has(p.class) && closeness > 0.25) {
-      const dir = pan < -0.25 ? "left" : pan > 0.25 ? "right" : "ahead";
-      say(`${p.class} ${dir}`, Priority.HAZARD, 2500);
-      tick(pan, Math.max(0.7, closeness));
-    } else if (PERSON_CLASSES.has(p.class) && closeness > 0.4) {
-      const dir = pan < -0.25 ? "left" : pan > 0.25 ? "right" : "ahead";
-      say(`person ${dir}`, Priority.SALIENT, 3500);
-    } else if (STATIC_OBSTACLE.has(p.class) && closeness > 0.55) {
-      say(`${p.class} ahead`, Priority.SALIENT, 5000);
+  let nearestForEarcon = null;
+  let topUtterance = null; // pick the single most urgent thing per frame to speak
+
+  for (const t of tracked) {
+    const inPath = t.cx >= PATH_X[0] && t.cx <= PATH_X[1] && t.bottom >= PATH_Y[0];
+    const closeness = clamp01(Math.max(t.area * 4, t.bottom > 0.55 ? (t.bottom - 0.55) * 2 : 0));
+    const looming = t.looming || 1;
+    const dir = t.cx < 0.40 ? "left" : t.cx > 0.60 ? "right" : "ahead";
+    const isVehicle = VEHICLE_CLASSES.has(t.class);
+    const isPerson = PERSON_CLASSES.has(t.class);
+    const isObstacle = STATIC_OBSTACLE.has(t.class);
+
+    // Earcon target: whatever object has the highest combined urgency.
+    const urgency = closeness * (inPath ? 1.6 : 1.0) * (looming > 1.15 ? 1.4 : 1.0);
+    if (!nearestForEarcon || urgency > nearestForEarcon._urgency) {
+      nearestForEarcon = { ...t, _urgency: urgency, _pan: (t.cx - 0.5) * 2 };
+    }
+
+    // Speech rules
+    let phrase = null, prio = Priority.AMBIENT, cd = 5000;
+
+    if (isVehicle && (looming > 1.20 || (inPath && closeness > 0.20))) {
+      phrase = `${t.class} ${dir}, approaching`;
+      prio = Priority.HAZARD;
+      cd = 1800;
+    } else if (isVehicle && closeness > 0.30) {
+      phrase = `${t.class} ${dir}`;
+      prio = Priority.HAZARD;
+      cd = 2500;
+    } else if (isPerson && inPath && (looming > 1.20 || closeness > 0.45)) {
+      phrase = `person ${dir}`;
+      prio = Priority.HAZARD;
+      cd = 2500;
+    } else if (isPerson && closeness > 0.55) {
+      phrase = `person ${dir}`;
+      prio = Priority.SALIENT;
+      cd = 4000;
+    } else if (isObstacle && inPath && closeness > 0.45) {
+      phrase = `${t.class} ahead`;
+      prio = Priority.SALIENT;
+      cd = 5000;
+    }
+
+    if (phrase) {
+      const score = prio * 1000 + closeness * 100 + (looming - 1) * 50;
+      if (!topUtterance || score > topUtterance.score) topUtterance = { phrase, prio, cd, score };
     }
   }
-  if (settings.earcons && nearest) setProximity(nearest.pan, nearest.closeness);
-  else setProximity(0, 0);
+
+  // In crossing mode the narrative layer (Haiku) owns the speech channel; vision only feeds earcons.
+  if (mode !== "crossing" && topUtterance) say(topUtterance.phrase, topUtterance.prio, topUtterance.cd);
+
+  if (settings.earcons && nearestForEarcon) {
+    const closeness = clamp01(Math.max(nearestForEarcon.area * 4, nearestForEarcon.bottom > 0.55 ? (nearestForEarcon.bottom - 0.55) * 2 : 0));
+    setProximity(nearestForEarcon._pan, closeness);
+  } else {
+    setProximity(0, 0);
+  }
 }
 
+function clamp01(v) { return Math.max(0, Math.min(1, v)); }
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }

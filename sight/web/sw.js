@@ -1,4 +1,4 @@
-const CACHE = "sight-v1";
+const CACHE = "sight-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -11,6 +11,8 @@ const ASSETS = [
   "./js/earcons.js",
   "./js/narrative.js",
   "./js/store.js",
+  "./js/tracker.js",
+  "./js/coach.js",
 ];
 
 self.addEventListener("install", (e) => {

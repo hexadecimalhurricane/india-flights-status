@@ -6,24 +6,44 @@ interface Env {
   ASSETS: { fetch: (req: Request) => Promise<Response> };
 }
 
+type Mode = "describe" | "read" | "crossing";
+
 interface DescribeRequest {
-  images: string[];        // base64 JPEG/PNG, no data: prefix
-  question?: string;       // optional user question; defaults to general scene description
-  sound_hints?: string[];  // recent on-device audio classifier hits, e.g. ["siren", "footsteps"]
-  speech?: string;         // recent ambient speech transcript, optional
-  heading_deg?: number;    // compass heading if available
+  images: string[];
+  question?: string;
+  sound_hints?: string[];
+  speech?: string;
+  heading_deg?: number;
+  mode?: Mode;
 }
 
-const SYSTEM_PROMPT = `You are the eyes of a blind person walking through the world. They are wearing AirPods and a phone with a forward-facing camera. Speak directly to them in second person.
+const PROMPT_DESCRIBE = `You are the eyes of a blind person walking. They are wearing AirPods and a phone with a forward-facing camera. Speak directly in second person.
 
 Rules:
-- Hazards first. If there is anything dangerous in the path (steps, traffic, low overhang, wet floor, dropoff, oncoming person/bike), say it first, in five words or fewer.
-- Then spatial layout: what is ahead, left, right. Use clock positions or "ahead / left / right" — never "in the image".
-- Distances in meters or steps when you can estimate them. Use the depth cues you can see (object size, ground contact point).
-- Read any text that is large, signage-like, or clearly directed at the user (street signs, store names, exit signs, menu items). Skip ambient text like license plates.
-- If the user provided sound hints or a speech transcript, integrate them — they describe things the camera can't see.
-- No filler. No "I can see", no "in this image", no "it looks like", no "the photo shows". Talk like a confident friend.
-- Total response under 60 words unless the user explicitly asked for detail.`;
+- Hazards first. Anything dangerous (steps, traffic, low overhang, dropoff, oncoming person/bike): say it first in five words or fewer.
+- Then spatial layout. Use "ahead / left / right" or clock positions. Never say "in the image".
+- Distances in meters or steps when possible. Use object size and ground contact for depth cues.
+- Read text only if it is large or signage-like. Skip license plates and ambient text.
+- If sound hints or ambient speech are provided, integrate them — they describe what the camera can't see.
+- No filler. No "I can see", no "the photo shows". Talk like a confident friend.
+- Total response under 40 words.`;
+
+const PROMPT_READ = `You are reading text aloud for a blind person looking at a sign, menu, or document. Read what is large and clearly intended to be read, top to bottom, left to right. Skip ambient text (license plates, distant signs not relevant). If multiple things are visible, pick the most prominent. Plain text only, no commentary, under 50 words.`;
+
+const PROMPT_CROSSING = `You are watching a road for a blind pedestrian who is about to cross or is crossing. The user has activated road-crossing mode and needs ultra-fast, ultra-short verdicts. Use sound hints — they may hear vehicles you can't see.
+
+OUTPUT FORMAT — pick exactly one phrase, no extra words, no punctuation:
+- "wait" — there is traffic moving across their path or signal is red
+- "go" — clear and safe to cross now, signal is walk/green
+- "car left" / "car right" / "car ahead" — vehicle approaching from that direction
+- "bike left" / "bike right" — cyclist approaching
+- "person crossing" — someone else is in the crosswalk
+- "almost across" — they are at or past midpoint with clear path
+- "back up" — they are stepping off a curb into traffic
+- "no crosswalk visible" — they appear off course
+- "clear" — no traffic, no signal, safe road
+
+Maximum five words. No "I see", no "looks like", no explanation.`;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,12 +73,11 @@ export default {
       return json({ error: "bad json" }, 400);
     }
 
-    if (!Array.isArray(body.images) || body.images.length === 0) {
-      return json({ error: "images[] required" }, 400);
-    }
-    if (body.images.length > 4) {
-      return json({ error: "max 4 images" }, 400);
-    }
+    if (!Array.isArray(body.images) || body.images.length === 0) return json({ error: "images[] required" }, 400);
+    if (body.images.length > 4) return json({ error: "max 4 images" }, 400);
+
+    const mode: Mode = body.mode === "crossing" || body.mode === "read" ? body.mode : "describe";
+    const { model, system, maxTokens } = profileFor(mode, env);
 
     const userContent: Array<Record<string, unknown>> = body.images.map((b64) => ({
       type: "image",
@@ -66,10 +85,16 @@ export default {
     }));
 
     const contextLines: string[] = [];
-    if (body.sound_hints?.length) contextLines.push(`Recent sounds detected: ${body.sound_hints.join(", ")}.`);
-    if (body.speech) contextLines.push(`Ambient speech heard: "${body.speech.slice(0, 200)}".`);
-    if (typeof body.heading_deg === "number") contextLines.push(`Compass heading: ${Math.round(body.heading_deg)}°.`);
-    const question = body.question?.trim() || "Describe what's ahead of me, hazards first.";
+    if (body.sound_hints?.length) contextLines.push(`Recent sounds: ${body.sound_hints.join(", ")}.`);
+    if (body.speech) contextLines.push(`Ambient speech: "${body.speech.slice(0, 160)}".`);
+    if (typeof body.heading_deg === "number") contextLines.push(`Heading: ${Math.round(body.heading_deg)}°.`);
+
+    const defaultQ = mode === "crossing"
+      ? "Verdict for this exact instant of crossing the road."
+      : mode === "read"
+        ? "Read the visible text for me."
+        : "Describe what's ahead of me, hazards first.";
+    const question = body.question?.trim() || defaultQ;
     userContent.push({ type: "text", text: contextLines.length ? `${contextLines.join(" ")}\n\n${question}` : question });
 
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
@@ -80,9 +105,9 @@ export default {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: env.MODEL,
-        max_tokens: Number(env.MAX_TOKENS) || 400,
-        system: SYSTEM_PROMPT,
+        model,
+        max_tokens: maxTokens,
+        system,
         messages: [{ role: "user", content: userContent }],
       }),
     });
@@ -94,9 +119,20 @@ export default {
 
     const data = (await upstream.json()) as { content?: Array<{ type: string; text?: string }> };
     const text = (data.content ?? []).filter((b) => b.type === "text").map((b) => b.text ?? "").join("").trim();
-    return json({ text });
+    return json({ text, mode });
   },
 };
+
+function profileFor(mode: Mode, env: Env): { model: string; system: string; maxTokens: number } {
+  if (mode === "crossing") {
+    // Sub-second latency matters more than verbosity. Haiku is the right model.
+    return { model: "claude-haiku-4-5", system: PROMPT_CROSSING, maxTokens: 30 };
+  }
+  if (mode === "read") {
+    return { model: env.MODEL, system: PROMPT_READ, maxTokens: 200 };
+  }
+  return { model: env.MODEL, system: PROMPT_DESCRIBE, maxTokens: Number(env.MAX_TOKENS) || 200 };
+}
 
 function detectMediaType(b64: string): string {
   if (b64.startsWith("/9j/")) return "image/jpeg";

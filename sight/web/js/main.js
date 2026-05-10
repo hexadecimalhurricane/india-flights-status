@@ -2,16 +2,22 @@ import { settings, saveSettings } from "./store.js";
 import { listVoices, pickVoice, say, shutUp, Priority } from "./speech.js";
 import { initAudio, resumeAudio } from "./earcons.js";
 import { startVision } from "./vision.js";
-import { startSound, onVoiceCommand, voiceCommandsAvailable } from "./sound.js";
+import { startSound, onVoiceCommand } from "./sound.js";
 import { describe, getLastNarrative } from "./narrative.js";
+import { bindVideo, isCrossing, toggleCrossing, speakWelcome, speakHelp } from "./coach.js";
 
 const $ = (id) => document.getElementById(id);
 const video = $("cam");
 const status = $("status");
-const describeBtn = $("describeBtn");
 
 let started = false;
+
+// Gesture state
+const DOUBLE_TAP_MS = 350;
+const LONG_PRESS_MS = 700;
+let pendingTap = null;
 let longPressTimer = null;
+let pressedAt = 0;
 
 async function start() {
   if (started) return;
@@ -20,7 +26,7 @@ async function start() {
 
   initAudio();
   resumeAudio();
-  startSilentAudioLoop(); // keeps iOS media session alive so AirPods double-tap reaches us
+  startSilentAudioLoop();
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -31,37 +37,34 @@ async function start() {
     await video.play();
   } catch (e) {
     status.textContent = "Camera permission denied. Reload and allow camera access.";
+    say("Camera permission was denied. Please reload and allow access.", Priority.NARRATIVE, 0);
     console.warn(e);
     return;
   }
 
   await populateVoices();
+  bindVideo(video);
 
-  const voiceHint = voiceCommandsAvailable() ? "Say 'describe' or tap." : "Tap anywhere to describe.";
-  status.textContent = voiceHint;
-  say("Sight ready. " + voiceHint, Priority.NARRATIVE, 0);
+  status.textContent = "Listening";
+  speakWelcome();
 
   startVision(video).catch((e) => console.warn("vision", e));
   startSound().catch((e) => console.warn("sound", e));
 
   onVoiceCommand((cmd) => {
-    if (cmd === "describe") describe(video, "Describe what's ahead of me, hazards first.");
-    else if (cmd === "read") describe(video, "Read any signs, prices, or large text in view, top to bottom.");
+    if (cmd === "describe") doDescribe();
+    else if (cmd === "read") describeRead();
     else if (cmd === "stop") shutUp();
     else if (cmd === "repeat") { const t = getLastNarrative(); if (t) say(t, Priority.NARRATIVE, 0); }
+    else if (cmd === "crossing" || cmd === "cross") toggleCrossing();
+    else if (cmd === "help") speakHelp();
   });
 
-  // Whole screen = describe; long-press = stop. Settings/describe buttons stop propagation.
-  document.body.addEventListener("pointerdown", onPointerDown);
-  document.body.addEventListener("pointerup", onPointerUp);
-  document.body.addEventListener("pointercancel", onPointerUp);
-
-  // AirPods double-tap / hardware media keys
   if ("mediaSession" in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({ title: "Sight", artist: "Surroundings", album: "Sight" });
-    navigator.mediaSession.setActionHandler("play", () => describe(video, "Describe what's ahead of me, hazards first."));
+    navigator.mediaSession.setActionHandler("play", doDescribe);
     navigator.mediaSession.setActionHandler("pause", () => shutUp());
-    navigator.mediaSession.setActionHandler("nexttrack", () => describe(video, "Read any signs in view."));
+    navigator.mediaSession.setActionHandler("nexttrack", describeRead);
     navigator.mediaSession.setActionHandler("previoustrack", () => { const t = getLastNarrative(); if (t) say(t, Priority.NARRATIVE, 0); });
     navigator.mediaSession.playbackState = "playing";
   }
@@ -71,34 +74,62 @@ async function start() {
   }
 }
 
-function onPointerDown(e) {
+function doDescribe() {
+  if (isCrossing()) { toggleCrossing(); return; } // tapping during crossing exits crossing
+  describe(video, "Describe what's ahead of me, hazards first.");
+}
+
+function describeRead() {
+  describe(video, "Read any signs, prices, or large text in view, top to bottom.");
+}
+
+// --- gesture state machine ---
+//
+// single tap          → describe (or exit crossing if active)
+// double tap          → toggle crossing mode
+// long press (700ms)  → speak help
+//
+// We resolve single vs double on a short timer.
+
+document.body.addEventListener("pointerdown", (e) => {
   if (e.target.closest("button, input, select, label, #settings")) return;
+  pressedAt = performance.now();
   longPressTimer = setTimeout(() => {
     longPressTimer = null;
-    shutUp();
-    say("Stopped.", Priority.NARRATIVE, 0);
-  }, 600);
-}
+    if (!started) start();
+    else speakHelp();
+  }, LONG_PRESS_MS);
+});
 
-function onPointerUp(e) {
+document.body.addEventListener("pointerup", (e) => {
   if (e.target.closest("button, input, select, label, #settings")) return;
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
-    if (!started) { start(); return; }
-    describe(video, "Describe what's ahead of me, hazards first.");
-  }
-}
+  if (!longPressTimer) return; // long-press already fired
+  clearTimeout(longPressTimer);
+  longPressTimer = null;
 
-// A silent looping buffer keeps the iOS media session in "playing" state,
-// which is what causes AirPods double-tap (play/pause) to be routed here
-// instead of to Music / nothing.
+  const heldMs = performance.now() - pressedAt;
+  if (heldMs > LONG_PRESS_MS) return; // shouldn't happen, defensive
+
+  if (!started) { start(); return; }
+
+  if (pendingTap) {
+    clearTimeout(pendingTap.id);
+    pendingTap = null;
+    toggleCrossing(); // double tap
+    return;
+  }
+  pendingTap = { id: setTimeout(() => { pendingTap = null; doDescribe(); }, DOUBLE_TAP_MS) };
+});
+
+document.body.addEventListener("pointercancel", () => {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+});
+
+// --- silent audio loop so iOS routes AirPods double-tap to us ---
 function startSilentAudioLoop() {
   try {
     const a = document.createElement("audio");
-    a.loop = true;
-    a.preload = "auto";
-    // 1-second silent WAV (8 kHz mono)
+    a.loop = true; a.preload = "auto";
     a.src = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
     a.play().catch(() => {});
   } catch {}
@@ -117,13 +148,7 @@ async function populateVoices() {
   await pickVoice(sel.value);
 }
 
-describeBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  if (!started) { start(); return; }
-  describe(video, "Describe what's ahead of me, hazards first.");
-});
-
-// Settings panel
+// Sighted-helper settings panel — hidden gear icon, doesn't affect voice flow
 $("settingsBtn").addEventListener("click", (e) => {
   e.stopPropagation();
   $("proxyUrl").value = settings.proxyUrl;

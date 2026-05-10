@@ -27,14 +27,14 @@ export async function pickVoice(uri) {
   return voice;
 }
 
-export function say(text, priority = Priority.SALIENT, cooldownMs = 4000) {
+export function say(text, priority = Priority.SALIENT, cooldownMs = 4000, opts = {}) {
   if (!text) return;
   const now = performance.now();
   const last = recent.get(text);
   if (last && now - last < cooldownMs) return;
   recent.set(text, now);
 
-  if (priority > speakingPriority) {
+  if (priority > speakingPriority || opts.interrupt) {
     speechSynthesis.cancel();
     queue.length = 0;
     queue.push({ text, priority });

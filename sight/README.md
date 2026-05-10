@@ -1,6 +1,10 @@
 # Sight
 
-Wearable navigation aid for blind and low-vision users. Phone is worn camera-forward (lanyard, harness, or chest mount); audio comes through AirPods. The app fuses live camera, depth, and ambient sound into prioritized speech and spatial earcons.
+Wearable navigation aid for blind users. Phone is worn camera-forward (lanyard, harness, chest mount); audio comes through AirPods. The app fuses live camera, ambient sound, and on-demand AI vision into prioritized speech and spatial earcons.
+
+**Voice-first.** The blind user never needs to find a button or read a screen. The app talks to them, listens for AirPods double-taps, and reads any tap-anywhere gesture.
+
+**Two priority use cases:** not hitting things while walking, and crossing roads safely.
 
 ## Ship it
 
@@ -9,35 +13,37 @@ cd sight
 ./deploy.sh
 ```
 
-That's the whole thing. The script installs deps, logs you into Cloudflare, prompts for your Anthropic API key (stored as a Worker secret), and deploys. You get back a `https://sight.<your-subdomain>.workers.dev` URL that serves both the PWA and the `/describe` proxy. Open it on your phone in Safari (iOS) or Chrome (Android), tap the screen, and start walking.
+That installs deps, logs into Cloudflare, prompts for your Anthropic API key (stored as a Worker secret, never in the repo), and deploys. You get back a single URL like `https://sight.<your-subdomain>.workers.dev` that serves both the PWA and the AI proxy.
 
-Re-run `deploy.sh` any time to push updates — it's idempotent.
+## How a blind user uses it
 
-## Using it on the phone
+1. Someone (or Siri) opens the URL on their iPhone in Safari.
+2. App says: **"Sight is ready. I will warn you about people and vehicles automatically."** Then: instructions.
+3. They wear the phone camera-forward and put in AirPods.
+4. **Single tap anywhere on the screen** → describes what's ahead
+5. **Double tap anywhere** → starts **crossing mode** (auto-exits after 90 s, or double-tap again to exit)
+6. **Hold the screen** → re-reads the instructions
+7. **AirPods double-tap** → describes (same as single tap)
+8. They don't need to do anything to get hazard warnings — the app speaks "car left, approaching" or "person ahead" automatically the moment it sees one.
 
-1. Open the URL on your phone. **HTTPS is required** for camera + mic — Cloudflare gives you that automatically.
-2. Tap the screen. Allow camera + mic permissions.
-3. Wear the phone camera-forward; pop in AirPods.
-4. **Tap anywhere** for a description; **long-press** to silence; **AirPods double-tap** triggers describe; **AirPods squeeze (Pro)** triggers describe.
-5. On Android Chrome, you can also say **"describe", "read", "stop", "repeat"** out loud (iOS Safari has no `SpeechRecognition` API yet, so iPhone users use taps + AirPods).
-6. **Add to Home Screen** to install as a PWA (full-screen, no Safari UI, faster cold start).
+On Android Chrome, voice commands also work: say "describe", "crossing", "stop", "help".
 
-## Why three layers, not one
+## How it stays safe and fast
 
-A single "send a frame to a vision model and read the answer" loop is too slow and too chatty for someone walking. Sight splits the work by latency budget:
+Three layers, each tuned to a different latency budget:
 
-| Layer | Latency | Frequency | Output |
+| Layer | Where | Latency | What it does |
 |---|---|---|---|
-| **Proximity** | ≤30 ms | 30–60 fps | Spatial earcons (panned ticks that speed up as obstacles get closer). Sound conveys direction faster than words. |
-| **Salience** | ~200 ms | 5–10 fps | Short prioritized utterances ("step down", "person, left, 2 m") from on-device object/text/sound detection. Dedupe + interrupt rules. |
-| **Narrative** | 1–3 s | On voice command / tap only | Rich Claude vision description, sent only when the user asks. |
+| **Proximity earcons** | WebAudio | ~20 ms | Ticks pan left/right and speed up as the closest in-path object gets closer. Sound conveys direction faster than words. |
+| **Salience** | TF.js COCO-SSD on-device, ~5 fps | ~200 ms | Tracks objects frame-to-frame (`tracker.js`). Anything **looming** (bbox area growing >20 % in the last second) or sitting **in your path** (centre-bottom of the frame) gets HAZARD priority. Speaks short utterances like "car left, approaching" with dedupe + interruption rules. |
+| **Narrative** | Claude vision via the Worker, on-demand | 1–3 s | Single-tap → Opus describes the scene (40 words, hazards first). Double-tap → **crossing mode** flips the model to **Haiku** with a traffic-only system prompt that returns 5-word verdicts ("wait", "go", "car left", "almost across") every 1.5 s while you cross. |
 
-Audio is a first-class input alongside video — the camera can't see behind you, but the mic can hear the bus.
+Audio is a first-class input: the Worker passes recent on-device sound classifier hits and any ambient speech transcript to Claude in the same prompt as the image. The camera can't see behind you, but the mic can hear the bus.
 
 ## Layout
 
-- **`proxy/`** — Cloudflare Worker. Holds the Anthropic API key. Serves the `web/` PWA as static assets at `/` and answers `POST /describe` for the narrative layer.
-- **`web/`** — PWA: camera + mic + on-device object detection (TF.js COCO-SSD) + ambient-sound heuristics + Web Speech TTS + WebAudio spatial panning + service worker.
+- **`proxy/`** — Cloudflare Worker. Holds the Anthropic key. Serves `web/` at `/` and answers `POST /describe` with `mode: "describe" | "read" | "crossing"`.
+- **`web/`** — PWA. Camera + mic + on-device detection + tracker + spatial audio + voice coach. The blind user only needs this URL.
 - **`ios/`** — Native SwiftUI scaffold for a future LiDAR-aware iOS app. Not needed for v1.
 
 ## Run locally
@@ -47,13 +53,13 @@ cd sight/proxy
 npm install
 echo "ANTHROPIC_API_KEY=sk-ant-..." > .dev.vars
 npx wrangler dev
-# Open http://localhost:8787 — but camera/mic require HTTPS, so on a real
-# phone you need a tunnel: `cloudflared tunnel --url http://localhost:8787`
+# Camera + mic require HTTPS on real phones. Tunnel with cloudflared:
+#   cloudflared tunnel --url http://localhost:8787
 ```
 
 ## Roadmap (next)
 
-- Swap WebAudio FFT heuristic for real **YAMNet** sound classification (siren, dog bark, doorbell, etc.) via tfjs-tflite.
-- iOS app: ARKit `smoothedSceneDepth` for true distance on Pro phones, `SNClassifySoundRequest` for first-class sound categories, background-audio so screen-off works.
-- Read-the-sign mode that frames + OCR-ranks text in the central focus area.
-- Crosswalk-light detector (red/green hand, walk/don't-walk countdown).
+- Replace WebAudio FFT heuristic with **YAMNet** for real sound categories (siren, dog bark, doorbell, beeping crosswalk signal).
+- iOS app: ARKit `smoothedSceneDepth` for true distance on Pro phones, `SNClassifySoundRequest` for first-class sound categories, screen-off background-audio mode.
+- Detect crosswalk signals visually (red hand vs walking person) so crossing mode doesn't depend on a round-trip to Claude.
+- Curb / step detection — the most underserved hazard.

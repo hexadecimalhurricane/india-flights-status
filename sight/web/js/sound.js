@@ -101,7 +101,9 @@ function startSpeechRecognition() {
 }
 
 function handleCommand(text) {
-  if (/(describe|what.*around|what.*see|what.*there|what.*ahead)/.test(text)) onCmd("describe");
+  if (/(crossing|cross the|crossing the)/.test(text)) onCmd("crossing");
+  else if (/^help|instructions|how do i/.test(text)) onCmd("help");
+  else if (/(describe|what.*around|what.*see|what.*there|what.*ahead)/.test(text)) onCmd("describe");
   else if (/(read|sign|menu)/.test(text)) onCmd("read");
   else if (/(stop|quiet|shut up|silence)/.test(text)) onCmd("stop");
   else if (/(repeat|again)/.test(text)) onCmd("repeat");
