@@ -1,0 +1,13 @@
+name = "sight-proxy"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+
+# Set the API key with:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#
+# Optional: lock the proxy to your apps with a shared bearer token:
+#   npx wrangler secret put CLIENT_TOKEN
+
+[vars]
+MODEL = "claude-opus-4-7"
+MAX_TOKENS = "400"
